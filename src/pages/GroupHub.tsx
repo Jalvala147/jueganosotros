@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
+import { LeaderCharts } from '../components/Charts'
 import { Streaks } from '../components/Streaks'
 import { Avatar, CodeChip, GameArt, GameGlyph, rankTone } from '../components/ui'
 import { GAME_MAP } from '../games/catalog'
@@ -8,7 +9,17 @@ import { compareMembers, formPoints } from '../lib/scoring'
 import { getStore } from '../store'
 import type { GroupSnapshot, Member } from '../types'
 
-type Tab = 'ronda' | 'temporada' | 'duelos' | 'juegos'
+type Tab = 'ronda' | 'temporada' | 'grafica' | 'duelos' | 'juegos'
+
+const TABS: { id: Tab; label: string }[] = [
+  { id: 'ronda', label: 'Ronda' },
+  { id: 'temporada', label: 'Temporada' },
+  { id: 'grafica', label: 'Gráfica' },
+  { id: 'duelos', label: 'Duelos' },
+  { id: 'juegos', label: 'Juegos' },
+]
+
+const meMark = 'ring-2 ring-ink'
 
 export function GroupHub() {
   const { groupId = '' } = useParams()
@@ -52,19 +63,19 @@ export function GroupHub() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-start justify-between gap-3">
-        <div>
+      <div className="flex items-start gap-3">
+        <div className="min-w-0 flex-1">
           <p className="text-[11px] font-black uppercase tracking-[0.22em] text-ink/50">
             Temporada {snap.group.seasonNumber}
           </p>
-          <h1 className="display text-5xl font-bold leading-[0.88] text-ink">{snap.group.name}</h1>
+          <h1 className="display break-words text-4xl font-bold leading-none text-ink">{snap.group.name}</h1>
           <div className="mt-3">
             <CodeChip code={snap.group.code} />
           </div>
         </div>
         {session.uid === snap.group.createdBy && (
           <button
-            className="rounded-full border-[3px] border-ink bg-white px-3 py-1 text-xs font-black text-ink"
+            className="shrink-0 rounded-full border-[3px] border-ink bg-white px-3 py-1 text-xs font-black text-ink"
             onClick={() => void resetSeason()}
           >
             Reset
@@ -75,14 +86,11 @@ export function GroupHub() {
       <section className="card overflow-hidden">
         <GameArt game={game} className="h-28" />
         <div className="space-y-3 p-4">
-          <div className="flex items-center gap-3">
-            <GameGlyph game={game} size={58} />
-            <div className="min-w-0">
-              <p className="text-[11px] font-black uppercase tracking-widest text-ink/45">
-                Ronda {snap.round.index} · {game.category}
-              </p>
-              <h2 className="display text-3xl font-bold leading-none">{game.name}</h2>
-            </div>
+          <div className="min-w-0">
+            <p className="text-[11px] font-black uppercase tracking-widest text-ink/45">
+              Ronda {snap.round.index} · {game.category}
+            </p>
+            <h2 className="display break-words text-3xl font-bold leading-none">{game.name}</h2>
           </div>
           <p className="text-sm font-bold text-ink/70">{game.blurb}</p>
           {snap.members.length < 2 && (
@@ -96,13 +104,7 @@ export function GroupHub() {
             </span>
             <span>{game.direction === 'higher' ? '↑ más alto' : '↓ menos gana'}</span>
           </div>
-          <div className="flex -space-x-2">
-            {snap.members.map((m) => (
-              <div key={m.uid} className={snap.plays[m.uid]?.finished ? 'opacity-100' : 'opacity-40'}>
-                <Avatar name={m.displayName} photo={m.photoURL} size={34} ring="#fff" />
-              </div>
-            ))}
-          </div>
+          <FaceStack members={snap.members} plays={snap.plays} />
           {!myTurnDone ? (
             <Link to={`/grupo/${groupId}/jugar`} className="btn btn-pink w-full">
               Jugar mi turno
@@ -115,16 +117,16 @@ export function GroupHub() {
         </div>
       </section>
 
-      <div className="flex gap-2 overflow-x-auto pb-1">
-        {(['ronda', 'temporada', 'duelos', 'juegos'] as Tab[]).map((t) => (
+      <div className="flex flex-wrap gap-2">
+        {TABS.map((t) => (
           <button
-            key={t}
-            onClick={() => setTab(t)}
-            className={`display shrink-0 rounded-full border-[3px] border-ink px-4 py-1.5 text-sm font-bold capitalize ${
-              tab === t ? 'bg-pink text-white shadow-[0_4px_0_#1c1430]' : 'bg-mute text-white'
+            key={t.id}
+            onClick={() => setTab(t.id)}
+            className={`display shrink-0 rounded-full border-[3px] border-ink px-4 py-1.5 text-sm font-bold ${
+              tab === t.id ? 'bg-pink text-white shadow-[0_4px_0_#1c1430]' : 'bg-mute text-white'
             }`}
           >
-            {t}
+            {t.label}
           </button>
         ))}
       </div>
@@ -133,6 +135,7 @@ export function GroupHub() {
         <RoundTable members={table} snap={snap} hideScores={hideScores} me={session.uid} />
       )}
       {tab === 'temporada' && <SeasonBoard members={table} me={session.uid} />}
+      {tab === 'grafica' && <LeaderCharts members={table} me={session.uid} />}
       {tab === 'duelos' && me && <H2H me={me} members={table} />}
       {tab === 'juegos' && <Kings members={table} />}
 
@@ -152,14 +155,16 @@ export function GroupHub() {
               const winner = r.results?.[0]
               const name = table.find((m) => m.uid === winner?.uid)?.displayName
               return (
-                <div key={r.id} className="score-row flex items-center justify-between bg-mute px-3 py-2 text-white">
+                <div key={r.id} className="score-row flex items-center justify-between gap-2 bg-mute px-3 py-2 text-white">
                   <span className="flex min-w-0 items-center gap-2 font-extrabold">
                     <GameGlyph game={meta} size={42} />
                     <span className="truncate">
                       #{r.index} {meta.name}
                     </span>
                   </span>
-                  <span className="display shrink-0 font-bold text-yellow">{name ?? '—'}</span>
+                  <span className="display max-w-[42%] shrink-0 truncate text-right text-sm font-bold text-yellow">
+                    {name ?? '—'}
+                  </span>
                 </div>
               )
             })}
@@ -189,14 +194,14 @@ function Podium({ members, me }: { members: Member[]; me: string }) {
       {slots.map(({ m, place, h, tone }) => (
         <div
           key={m.uid}
-          className={`score-row flex flex-1 flex-col items-center justify-end px-1 pb-3 pt-3 ${h} ${tone} ${
-            m.uid === me ? 'outline outline-[3px] outline-offset-2 outline-ink' : ''
+          className={`score-row flex min-w-0 flex-1 flex-col items-center justify-end px-1.5 pb-3 pt-3 ${h} ${tone} ${
+            m.uid === me ? meMark : ''
           }`}
         >
           <span className="display text-xs font-bold opacity-80">#{place}</span>
-          <Avatar name={m.displayName} photo={m.photoURL} size={36} ring="transparent" />
+          <Avatar name={m.displayName} photo={m.photoURL} look={m.avatar} size={36} ring="transparent" />
           <p className="mt-1 w-full truncate text-center text-xs font-black">{m.displayName}</p>
-          <p className="display text-3xl font-bold leading-none">{m.seasonPoints}</p>
+          <p className="display text-2xl font-bold leading-none">{m.seasonPoints}</p>
         </div>
       ))}
     </div>
@@ -210,12 +215,10 @@ function SeasonBoard({ members, me }: { members: Member[]; me: string }) {
       {members.map((m, i) => (
         <div
           key={m.uid}
-          className={`score-row flex items-center gap-3 px-3 py-3 ${rankTone(i)} ${
-            m.uid === me ? 'outline outline-[3px] outline-offset-2 outline-ink' : ''
-          }`}
+          className={`score-row flex items-center gap-2 px-3 py-3 ${rankTone(i)} ${m.uid === me ? meMark : ''}`}
         >
-          <span className="display w-8 text-center text-2xl font-bold">{i + 1}</span>
-          <Avatar name={m.displayName} photo={m.photoURL} size={40} ring="transparent" />
+          <span className="display w-7 shrink-0 text-center text-xl font-bold">{i + 1}</span>
+          <Avatar name={m.displayName} photo={m.photoURL} look={m.avatar} size={40} ring="transparent" />
           <div className="min-w-0 flex-1">
             <p className="truncate font-black">
               {m.displayName}
@@ -226,11 +229,11 @@ function SeasonBoard({ members, me }: { members: Member[]; me: string }) {
               )}
             </p>
             <Streaks member={m} compact />
-            <p className="text-[11px] font-extrabold opacity-75">
+            <p className="truncate text-[11px] font-extrabold opacity-75">
               {m.wins}W · {m.elo} elo · {formPoints(m.lastFivePoints)} forma
             </p>
           </div>
-          <p className="display text-4xl font-bold leading-none">{m.seasonPoints}</p>
+          <p className="display w-12 shrink-0 text-right text-2xl font-bold leading-none">{m.seasonPoints}</p>
         </div>
       ))}
     </div>
@@ -269,18 +272,24 @@ function RoundTable({
             : play?.official.length
               ? `${play.official.length} tiro(s)`
               : 'Esperando'
-        const big = score === '•••' || /^\d/.test(score)
+        const numeric = play?.finished && play.best != null
         return (
           <div
             key={m.uid}
-            className={`score-row flex items-center justify-between gap-3 px-3 py-3 ${rankTone(i)}`}
+            className={`score-row flex items-center justify-between gap-2 px-3 py-3 ${rankTone(i)}`}
           >
-            <div className="flex min-w-0 items-center gap-3">
-              <span className="display w-6 text-center text-xl font-bold">{i + 1}</span>
-              <Avatar name={m.displayName} photo={m.photoURL} size={38} ring="transparent" />
+            <div className="flex min-w-0 items-center gap-2">
+              <span className="display w-6 shrink-0 text-center text-xl font-bold">{i + 1}</span>
+              <Avatar name={m.displayName} photo={m.photoURL} look={m.avatar} size={38} ring="transparent" />
               <p className="truncate font-black">{m.displayName}</p>
             </div>
-            <p className={big ? 'display text-4xl font-bold leading-none' : 'text-xs font-black uppercase'}>
+            <p
+              className={
+                numeric
+                  ? 'display shrink-0 text-3xl font-bold leading-none'
+                  : 'max-w-[6.5rem] shrink-0 text-right text-[11px] font-black uppercase leading-tight'
+              }
+            >
               {score}
             </p>
           </div>
@@ -298,12 +307,12 @@ function H2H({ me, members }: { me: Member; members: Member[] }) {
       {others.map((o) => {
         const cell = me.h2h[o.uid] ?? { wins: 0, losses: 0 }
         return (
-          <div key={o.uid} className="score-row flex items-center justify-between bg-mute px-3 py-3 text-white">
-            <div className="flex items-center gap-3">
-              <Avatar name={o.displayName} photo={o.photoURL} size={38} ring="#4C4660" />
-              <p className="font-black">{o.displayName}</p>
+          <div key={o.uid} className="score-row flex items-center justify-between gap-2 bg-mute px-3 py-3 text-white">
+            <div className="flex min-w-0 items-center gap-2">
+              <Avatar name={o.displayName} photo={o.photoURL} look={o.avatar} size={38} ring="#4C4660" />
+              <p className="truncate font-black">{o.displayName}</p>
             </div>
-            <p className="display text-3xl font-bold leading-none">
+            <p className="display shrink-0 text-2xl font-bold leading-none">
               <span className="text-yellow">{cell.wins}</span>
               <span className="text-white/40"> – </span>
               <span className="text-pink">{cell.losses}</span>
@@ -311,6 +320,29 @@ function H2H({ me, members }: { me: Member; members: Member[] }) {
           </div>
         )
       })}
+    </div>
+  )
+}
+
+function FaceStack({
+  members,
+  plays,
+}: {
+  members: Member[]
+  plays: GroupSnapshot['plays']
+}) {
+  const shown = members.slice(0, 6)
+  const extra = members.length - shown.length
+  return (
+    <div className="flex items-center">
+      <div className="flex -space-x-2">
+        {shown.map((m) => (
+          <div key={m.uid} className={plays[m.uid]?.finished ? '' : 'opacity-40'}>
+            <Avatar name={m.displayName} photo={m.photoURL} look={m.avatar} size={34} ring="#fff" />
+          </div>
+        ))}
+      </div>
+      {extra > 0 && <span className="ml-2 text-xs font-black text-ink/60">+{extra}</span>}
     </div>
   )
 }
@@ -324,8 +356,8 @@ function Kings({ members }: { members: Member[] }) {
         return (
           <div key={g.id} className="card p-3">
             <GameGlyph game={g} size={48} />
-            <p className="display mt-2 font-bold leading-none">{g.name}</p>
-            <p className="mt-1 text-xs font-extrabold text-ink/55">
+            <p className="display mt-2 truncate font-bold leading-none">{g.name}</p>
+            <p className="mt-1 truncate text-xs font-extrabold text-ink/55">
               {wins ? `${king!.displayName} · ${wins}` : 'sin rey'}
             </p>
           </div>

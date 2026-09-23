@@ -1,4 +1,4 @@
-import type { GameId, Group, GroupSnapshot, PlayRecord, UserProfile } from '../types'
+import type { AvatarLook, GameId, Group, GroupSnapshot, PlayRecord, UserProfile } from '../types'
 
 export type SessionUser = {
   uid: string
@@ -23,16 +23,29 @@ export type MyGroup = {
   seasonPoints?: number
   rank: number
   gameId?: GameId
-  members: { name: string; photo: string | null }[]
+  members: { uid: string; name: string; photo: string | null; look: AvatarLook | null }[]
 }
 
 export type StoreAPI = {
   ensureUser(session: SessionUser, nickname?: string): Promise<UserProfile>
   watchProfile(uid: string, cb: (profile: UserProfile | null) => void): () => void
   updateNickname(uid: string, name: string): Promise<void>
+  updateAvatar(uid: string, look: AvatarLook): Promise<void>
   watchMyGroups(uid: string, cb: (groups: MyGroup[]) => void): () => void
-  createGroup(uid: string, name: string, displayName: string, photoURL: string | null): Promise<string>
-  joinGroup(uid: string, code: string, displayName: string, photoURL: string | null): Promise<string>
+  createGroup(
+    uid: string,
+    name: string,
+    displayName: string,
+    photoURL: string | null,
+    avatar?: AvatarLook | null,
+  ): Promise<string>
+  joinGroup(
+    uid: string,
+    code: string,
+    displayName: string,
+    photoURL: string | null,
+    avatar?: AvatarLook | null,
+  ): Promise<string>
   watchGroup(groupId: string, cb: (snap: GroupSnapshot | null) => void): () => void
   submitPlay(
     groupId: string,

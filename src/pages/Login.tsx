@@ -34,7 +34,7 @@ export function Login() {
         <p className="display text-center text-xs font-bold uppercase tracking-[0.28em] text-ink/55">
           liga de minijuegos
         </p>
-        <h1 className="display mt-2 text-center text-6xl font-bold leading-[0.84] text-ink">
+        <h1 className="display mt-2 text-center text-5xl font-bold leading-none text-ink sm:text-6xl">
           Juega
           <br />
           <span className="text-pink">Nosotros</span>

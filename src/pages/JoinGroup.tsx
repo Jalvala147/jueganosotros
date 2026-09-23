@@ -16,7 +16,13 @@ export function JoinGroup() {
     setBusy(true)
     setError(null)
     try {
-      const id = await getStore().joinGroup(session.uid, code, profile.displayName, profile.photoURL)
+      const id = await getStore().joinGroup(
+        session.uid,
+        code,
+        profile.displayName,
+        profile.photoURL,
+        profile.avatar,
+      )
       nav(`/grupo/${id}`)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo entrar')
@@ -32,9 +38,9 @@ export function JoinGroup() {
         <span className="block h-14 w-4 rounded-full bg-yellow" />
         <span className="block h-10 w-4 rounded-full bg-purple" />
       </div>
-      <h1 className="display text-6xl font-bold leading-[0.88] text-ink">Unirme</h1>
+      <h1 className="display text-5xl font-bold leading-none text-ink">Unirme</h1>
       <input
-        className="input display text-center text-3xl tracking-[0.35em] uppercase"
+        className="input display text-center text-2xl tracking-[0.22em] uppercase"
         placeholder="K7M2QX"
         value={code}
         onChange={(e) => setCode(e.target.value.toUpperCase())}

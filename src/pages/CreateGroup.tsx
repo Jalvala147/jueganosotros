@@ -17,7 +17,13 @@ export function CreateGroup() {
     setBusy(true)
     setError(null)
     try {
-      const id = await getStore().createGroup(session.uid, name, profile.displayName, profile.photoURL)
+      const id = await getStore().createGroup(
+        session.uid,
+        name,
+        profile.displayName,
+        profile.photoURL,
+        profile.avatar,
+      )
       nav(`/grupo/${id}`)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo crear')
@@ -29,7 +35,7 @@ export function CreateGroup() {
   return (
     <form onSubmit={(e) => void submit(e)} className="space-y-5">
       <StickMark />
-      <h1 className="display text-6xl font-bold leading-[0.88] text-ink">Nueva liga</h1>
+      <h1 className="display text-5xl font-bold leading-none text-ink">Nueva liga</h1>
       <p className="text-lg font-bold text-ink/70">Te sale un código de 6 letras. Lo mandas y que se unan.</p>
       <input
         className="input text-lg"

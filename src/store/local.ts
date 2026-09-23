@@ -3,7 +3,7 @@ import { makeId } from '../lib/ids'
 import { nextGameId } from '../games/catalog'
 import { GAME_MAP } from '../games/catalog'
 import { closeRoundScoring, compareMembers, emptyMember, resetSeasonMember, shouldAutoClose } from '../lib/scoring'
-import type { Group, GroupSnapshot, Member, PlayRecord, Round, UserProfile } from '../types'
+import type { AvatarLook, Group, GroupSnapshot, Member, PlayRecord, Round, UserProfile } from '../types'
 import { defaultSettings, firstRound, type AuthAPI, type MyGroup, type SessionUser, type StoreAPI } from './types'
 
 const DATA_KEY = 'jn.v1.data'
@@ -94,6 +94,7 @@ export const localStore: StoreAPI = {
         uid: session.uid,
         displayName: nickname || session.displayName || 'Jugador',
         photoURL: session.photoURL,
+        avatar: null,
         email: session.email,
         createdAt: Date.now(),
         groupIds: [],
@@ -120,6 +121,15 @@ export const localStore: StoreAPI = {
     })
   },
 
+  async updateAvatar(uid, look) {
+    mutate((db) => {
+      if (db.users[uid]) db.users[uid]!.avatar = look
+      for (const gid of db.users[uid]?.groupIds ?? []) {
+        if (db.members[gid]?.[uid]) db.members[gid]![uid]!.avatar = look
+      }
+    })
+  },
+
   watchMyGroups(uid, cb) {
     const emit = () => {
       const db = load()
@@ -137,7 +147,12 @@ export const localStore: StoreAPI = {
             seasonPoints: db.members[g!.id]?.[uid]?.seasonPoints,
             rank: me >= 0 ? me + 1 : members.length,
             gameId: round?.gameId,
-            members: members.slice(0, 8).map((m) => ({ name: m.displayName, photo: m.photoURL })),
+            members: members.slice(0, 8).map((m) => ({
+              uid: m.uid,
+              name: m.displayName,
+              photo: m.photoURL,
+              look: m.avatar ?? null,
+            })),
           }
           return card
         })
@@ -147,7 +162,7 @@ export const localStore: StoreAPI = {
     return onChange(emit)
   },
 
-  async createGroup(uid, name, displayName, photoURL) {
+  async createGroup(uid, name, displayName, photoURL, avatar: AvatarLook | null = null) {
     const id = makeId('g')
     const code = makeGroupCode()
     const seed = (crypto.getRandomValues(new Uint32Array(1))[0] ?? Date.now()) >>> 0
@@ -168,13 +183,14 @@ export const localStore: StoreAPI = {
       const round = firstRound(id, gameId, seed, group.settings.timeoutHours)
       db.groups[id] = group
       db.codes[code] = id
-      db.members[id] = { [uid]: emptyMember(uid, displayName, photoURL) }
+      db.members[id] = { [uid]: emptyMember(uid, displayName, photoURL, avatar ?? db.users[uid]?.avatar ?? null) }
       db.rounds[id] = { [round.id]: round }
       db.plays[id] = { [round.id]: {} }
       db.users[uid] ??= {
         uid,
         displayName,
         photoURL,
+        avatar: avatar ?? null,
         email: null,
         createdAt: Date.now(),
         groupIds: [],
@@ -184,7 +200,7 @@ export const localStore: StoreAPI = {
     return id
   },
 
-  async joinGroup(uid, code, displayName, photoURL) {
+  async joinGroup(uid, code, displayName, photoURL, avatar: AvatarLook | null = null) {
     const normalized = normalizeCode(code)
     let groupId = ''
     mutate((db) => {
@@ -192,11 +208,13 @@ export const localStore: StoreAPI = {
       if (!id || !db.groups[id]) throw new Error('Ese código no existe')
       groupId = id
       db.members[id] ??= {}
-      db.members[id]![uid] ??= emptyMember(uid, displayName, photoURL)
+      const look = avatar ?? db.users[uid]?.avatar ?? null
+      db.members[id]![uid] ??= emptyMember(uid, displayName, photoURL, look)
       db.users[uid] ??= {
         uid,
         displayName,
         photoURL,
+        avatar: look,
         email: null,
         createdAt: Date.now(),
         groupIds: [],

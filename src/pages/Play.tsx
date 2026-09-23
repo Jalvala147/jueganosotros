@@ -75,7 +75,7 @@ export function Play() {
         <p className="text-sm font-black uppercase tracking-widest text-ink/45">
           {kind === 'practice' ? 'Práctica' : 'Intento oficial'}
         </p>
-        <p className="display text-8xl font-bold leading-none text-pink">{lastScore}</p>
+        <p className="display text-7xl font-bold leading-none text-pink">{lastScore}</p>
         {error && <p className="text-sm font-black text-pink">{error}</p>}
         <div className="space-y-2">
           {officialLeft > 0 && (
@@ -106,7 +106,7 @@ export function Play() {
         <GameArt game={game} className="h-44" />
         <div className="p-5">
           <p className="text-[11px] font-black uppercase tracking-widest text-ink/45">{game.category}</p>
-          <h1 className="display text-5xl font-bold leading-[0.9]">{game.name}</h1>
+          <h1 className="display break-words text-4xl font-bold leading-none">{game.name}</h1>
           <p className="mt-2 font-bold text-ink/70">{game.hint}</p>
         </div>
       </div>

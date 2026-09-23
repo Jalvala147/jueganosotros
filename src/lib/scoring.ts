@@ -194,11 +194,13 @@ export function emptyMember(
   uid: string,
   displayName: string,
   photoURL: string | null,
+  avatar: Member['avatar'] = null,
 ): Member {
   return {
     uid,
     displayName,
     photoURL,
+    avatar,
     joinedAt: Date.now(),
     seasonPoints: 0,
     wins: 0,

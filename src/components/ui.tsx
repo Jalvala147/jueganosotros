@@ -1,52 +1,49 @@
+import { AvatarFace } from './AvatarFace'
+import { defaultAvatar, hashName, type AvatarLook } from '../lib/avatar'
 import type { GameMeta } from '../types'
-
-const PALETTE = ['#ff4571', '#ffd145', '#8260f6', '#28dad4', '#4c4660', '#ff8a3d']
-
-export function colorFromName(name: string): string {
-  let h = 0
-  for (let i = 0; i < name.length; i++) h = (h + name.charCodeAt(i) * (i + 1)) % PALETTE.length
-  return PALETTE[h]!
-}
 
 export function Avatar({
   name,
   photo,
+  look,
   size = 44,
   ring = '#fff',
 }: {
   name: string
   photo?: string | null
+  look?: AvatarLook | null
   size?: number
   ring?: string
 }) {
-  const initial = (name.trim()[0] ?? '?').toUpperCase()
-  const style = { width: size, height: size, boxShadow: `0 0 0 3px ${ring}` }
-  if (photo) {
-    return <img src={photo} alt="" className="rounded-full object-cover" style={style} />
+  const style = { width: size, height: size, boxShadow: ring !== 'transparent' ? `0 0 0 3px ${ring}` : undefined }
+  if (look) {
+    return <AvatarFace look={look} size={size} ring={ring} />
   }
-  return (
-    <div
-      className="flex items-center justify-center rounded-full font-black text-white"
-      style={{ ...style, background: colorFromName(name), fontSize: size * 0.38 }}
-    >
-      {initial}
-    </div>
-  )
+  if (photo) {
+    return <img src={photo} alt="" className="shrink-0 rounded-full object-cover" style={style} />
+  }
+  return <AvatarFace look={defaultAvatar(hashName(name || '?'))} size={size} ring={ring} />
 }
 
 export function FaceRow({
   people,
   ring = '#fff',
+  max = 5,
 }: {
-  people: { name: string; photo?: string | null }[]
+  people: { uid?: string; name: string; photo?: string | null; look?: AvatarLook | null }[]
   ring?: string
+  max?: number
 }) {
-  const shown = people.slice(0, 6)
+  const shown = people.slice(0, max)
+  const extra = people.length - shown.length
   return (
-    <div className="flex -space-x-2">
-      {shown.map((p) => (
-        <Avatar key={p.name + (p.photo ?? '')} name={p.name} photo={p.photo} size={36} ring={ring} />
-      ))}
+    <div className="flex min-w-0 items-center">
+      <div className="flex -space-x-2">
+        {shown.map((p, i) => (
+          <Avatar key={p.uid ?? `${p.name}-${i}`} name={p.name} photo={p.photo} look={p.look} size={36} ring={ring} />
+        ))}
+      </div>
+      {extra > 0 && <span className="ml-1.5 shrink-0 text-xs font-black">+{extra}</span>}
     </div>
   )
 }
@@ -81,7 +78,7 @@ export function GameArt({ game, className = 'h-32' }: { game: GameMeta; classNam
         className="absolute bottom-3 right-14 h-0 w-0 border-x-[14px] border-b-[24px] border-x-transparent"
         style={{ borderBottomColor: 'rgba(255,255,255,.7)' }}
       />
-      <div className="absolute inset-0 grid place-items-center text-6xl drop-shadow-[0_6px_0_rgba(28,20,48,0.15)]">
+      <div className="absolute inset-0 grid place-items-center text-5xl drop-shadow-[0_6px_0_rgba(28,20,48,0.15)]">
         {game.emoji}
       </div>
     </div>

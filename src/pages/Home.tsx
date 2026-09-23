@@ -24,12 +24,18 @@ export function Home() {
 
   return (
     <div className="space-y-5">
-      <div className="flex items-end justify-between gap-3">
-        <div>
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0">
           <p className="text-xs font-black uppercase tracking-[0.18em] text-ink/55">¿Listo para la ronda?</p>
-          <h1 className="display text-5xl font-bold leading-[0.9] text-ink">{profile?.displayName}</h1>
+          <h1 className="display truncate text-4xl font-bold leading-none text-ink">{profile?.displayName}</h1>
         </div>
-        <Avatar name={profile?.displayName ?? '?'} photo={profile?.photoURL} size={64} ring="#fff" />
+        <Avatar
+          name={profile?.displayName ?? '?'}
+          photo={profile?.photoURL}
+          look={profile?.avatar}
+          size={64}
+          ring="#fff"
+        />
       </div>
 
       <div className="grid grid-cols-2 gap-3">
@@ -65,10 +71,10 @@ export function Home() {
                 <div className="h-32 bg-gradient-to-br from-pink to-yellow" />
               )}
               <div className="px-4 pb-4">
-                <div className="-mt-5 flex items-end justify-between">
+                <div className="relative z-10 -mt-4 flex items-center justify-between gap-3">
                   <FaceRow people={g.members} ring={dark ? '#4C4660' : '#fff'} />
                   <span
-                    className={`display grid h-12 min-w-12 place-items-center rounded-2xl border-[3px] border-ink px-2 text-lg font-bold ${badgeTone(g.rank)}`}
+                    className={`display grid h-12 min-w-12 shrink-0 place-items-center rounded-2xl border-[3px] border-ink px-2 text-lg font-bold ${badgeTone(g.rank)}`}
                   >
                     #{g.rank}
                   </span>
