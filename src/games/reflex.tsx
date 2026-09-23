@@ -46,11 +46,11 @@ export function GreenTap({ seed, onFinish }: GameProps) {
 
   if (left > 0) return <Overlay text={String(left)} />
   return (
-    <button onClick={tap} className="w-full overflow-hidden rounded-3xl border border-line">
+    <button onClick={tap} className="w-full">
       <GameFrame score={score} label={`${time}s`}>
         <div
-          className="flex h-80 items-center justify-center text-3xl font-extrabold"
-          style={{ background: green ? '#16a34a' : '#9f1239' }}
+          className="display flex h-80 items-center justify-center text-5xl font-bold text-white"
+          style={{ background: green ? '#22c55e' : '#ff4571' }}
         >
           {green ? '¡TOCA!' : 'espera'}
         </div>
@@ -99,15 +99,20 @@ export function Reaction({ seed, onFinish }: GameProps) {
   }
 
   if (left > 0) return <Overlay text={String(left)} />
-  const color = state === 'go' ? '#c8f542' : state === 'early' ? '#ff4d8d' : '#1e293b'
+  const tone =
+    state === 'go'
+      ? { bg: '#ffd145', fg: '#1c1430' }
+      : state === 'early'
+        ? { bg: '#ff4571', fg: '#fff' }
+        : { bg: '#8260f6', fg: '#fff' }
   return (
     <button onClick={tap} className="w-full">
       <GameFrame score={`${times.length}/5`} label="reacción">
-        <div className="flex h-80 flex-col items-center justify-center" style={{ background: color }}>
-          <p className="text-3xl font-extrabold text-ink">
+        <div className="flex h-80 flex-col items-center justify-center" style={{ background: tone.bg, color: tone.fg }}>
+          <p className="display text-5xl font-bold">
             {state === 'go' ? '¡YA!' : state === 'early' ? 'muy pronto' : 'espera…'}
           </p>
-          <p className="mt-2 text-sm text-ink/70">{times.join(' · ')}</p>
+          <p className="mt-2 text-sm font-black opacity-70">{times.join(' · ')}</p>
         </div>
       </GameFrame>
     </button>

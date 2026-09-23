@@ -22,6 +22,7 @@ import {
 import { makeGroupCode, normalizeCode } from '../lib/codes'
 import { GAME_MAP, nextGameId } from '../games/catalog'
 import { getFirebase } from '../lib/firebase'
+import { buildCareer } from '../lib/career'
 import { closeRoundScoring, compareMembers, emptyMember, resetSeasonMember, shouldAutoClose } from '../lib/scoring'
 import type { AvatarLook, GameId, Group, GroupSnapshot, Member, PlayRecord, Round, UserProfile } from '../types'
 import { defaultSettings, firstRound, type AuthAPI, type MyGroup, type StoreAPI } from './types'
@@ -177,6 +178,30 @@ export const firebaseStore: StoreAPI = {
         )
       ).filter(Boolean) as MyGroup[]
       cb(groups)
+    })
+  },
+
+  watchCareer(uid, cb) {
+    return onSnapshot(userRef(uid), async (snap) => {
+      const ids = (snap.data() as UserProfile | undefined)?.groupIds ?? []
+      const packs = (
+        await Promise.all(
+          ids.map(async (id) => {
+            const g = await getDoc(groupRef(id))
+            if (!g.exists()) return null
+            const [membersSnap, roundsSnap] = await Promise.all([
+              getDocs(collection(getFirebase().db, 'groups', id, 'members')),
+              getDocs(collection(getFirebase().db, 'groups', id, 'rounds')),
+            ])
+            return {
+              group: g.data() as Group,
+              members: membersSnap.docs.map((d) => d.data() as Member),
+              rounds: roundsSnap.docs.map((d) => d.data() as Round),
+            }
+          }),
+        )
+      ).filter((pack): pack is NonNullable<typeof pack> => Boolean(pack))
+      cb(buildCareer(uid, packs))
     })
   },
 

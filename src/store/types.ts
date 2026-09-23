@@ -1,3 +1,4 @@
+import type { Career } from '../lib/career'
 import type { AvatarLook, GameId, Group, GroupSnapshot, PlayRecord, UserProfile } from '../types'
 
 export type SessionUser = {
@@ -32,6 +33,7 @@ export type StoreAPI = {
   updateNickname(uid: string, name: string): Promise<void>
   updateAvatar(uid: string, look: AvatarLook): Promise<void>
   watchMyGroups(uid: string, cb: (groups: MyGroup[]) => void): () => void
+  watchCareer(uid: string, cb: (career: Career) => void): () => void
   createGroup(
     uid: string,
     name: string,
