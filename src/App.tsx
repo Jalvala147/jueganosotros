@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { useAuth } from './auth/AuthProvider'
 import { Layout } from './components/Layout'
+import { SceneDecor } from './components/ui'
 import { CreateGroup } from './pages/CreateGroup'
 import { GroupHub } from './pages/GroupHub'
 import { Home } from './pages/Home'
@@ -11,14 +12,16 @@ import { Profile } from './pages/Profile'
 
 function Guard({ children }: { children: React.ReactNode }) {
   const { session, loading } = useAuth()
-  if (loading) return <p className="p-8 text-white/50">Cargando…</p>
+  if (loading) return <p className="p-8 text-center text-sm font-black text-ink/60">Cargando…</p>
   if (!session) return <Navigate to="/login" replace />
   return children
 }
 
 export function App() {
   return (
-    <Routes>
+    <>
+      <SceneDecor />
+      <Routes>
       <Route path="/login" element={<Login />} />
       <Route
         path="/"
@@ -36,6 +39,7 @@ export function App() {
         <Route path="grupo/:groupId/jugar" element={<Play />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+      </Routes>
+    </>
   )
 }

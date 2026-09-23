@@ -22,9 +22,9 @@ import {
 import { makeGroupCode, normalizeCode } from '../lib/codes'
 import { GAME_MAP, nextGameId } from '../games/catalog'
 import { getFirebase } from '../lib/firebase'
-import { closeRoundScoring, emptyMember, resetSeasonMember } from '../lib/scoring'
-import type { GameId, Group, GroupSnapshot, Member, PlayRecord, Round, UserProfile } from '../types'
-import { defaultSettings, firstRound, type AuthAPI, type StoreAPI } from './types'
+import { closeRoundScoring, compareMembers, emptyMember, resetSeasonMember, shouldAutoClose } from '../lib/scoring'
+import type { AvatarLook, GameId, Group, GroupSnapshot, Member, PlayRecord, Round, UserProfile } from '../types'
+import { defaultSettings, firstRound, type AuthAPI, type MyGroup, type StoreAPI } from './types'
 
 function isMobile() {
   return /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
@@ -106,6 +106,7 @@ export const firebaseStore: StoreAPI = {
       uid: session.uid,
       displayName: nickname || session.displayName || 'Jugador',
       photoURL: session.photoURL,
+      avatar: null,
       email: session.email,
       createdAt: Date.now(),
       groupIds: [],
@@ -131,6 +132,16 @@ export const firebaseStore: StoreAPI = {
     await batch.commit()
   },
 
+  async updateAvatar(uid, look) {
+    const { db } = getFirebase()
+    const userSnap = await getDoc(userRef(uid))
+    const groupIds = (userSnap.data() as UserProfile | undefined)?.groupIds ?? []
+    const batch = writeBatch(db)
+    batch.update(userRef(uid), { avatar: look })
+    for (const gid of groupIds) batch.update(memberRef(gid, uid), { avatar: look })
+    await batch.commit()
+  },
+
   watchMyGroups(uid, cb) {
     return onSnapshot(userRef(uid), async (snap) => {
       const ids = (snap.data() as UserProfile | undefined)?.groupIds ?? []
@@ -141,20 +152,35 @@ export const firebaseStore: StoreAPI = {
             const m = await getDoc(memberRef(id, uid))
             if (!g.exists()) return null
             const data = g.data() as Group
-            return {
+            const membersSnap = await getDocs(collection(getFirebase().db, 'groups', id, 'members'))
+            const members = membersSnap.docs.map((d) => d.data() as Member).sort(compareMembers)
+            const me = members.findIndex((member) => member.uid === uid)
+            const roundSnap = data.currentRoundId
+              ? await getDoc(roundRef(id, data.currentRoundId))
+              : null
+            const card: MyGroup = {
               id: data.id,
               name: data.name,
               code: data.code,
               seasonPoints: (m.data() as Member | undefined)?.seasonPoints,
+              rank: me >= 0 ? me + 1 : members.length,
+              gameId: (roundSnap?.data() as Round | undefined)?.gameId,
+              members: members.slice(0, 8).map((member) => ({
+                uid: member.uid,
+                name: member.displayName,
+                photo: member.photoURL,
+                look: member.avatar ?? null,
+              })),
             }
+            return card
           }),
         )
-      ).filter(Boolean) as { id: string; name: string; code: string; seasonPoints?: number }[]
+      ).filter(Boolean) as MyGroup[]
       cb(groups)
     })
   },
 
-  async createGroup(uid, name, displayName, photoURL) {
+  async createGroup(uid, name, displayName, photoURL, avatar: AvatarLook | null = null) {
     const { db } = getFirebase()
     const id = doc(collection(db, 'groups')).id
     const code = makeGroupCode()
@@ -180,14 +206,14 @@ export const firebaseStore: StoreAPI = {
       const profile = user.data() as UserProfile
       tx.set(codeRef(code), { groupId: id })
       tx.set(groupRef(id), group)
-      tx.set(memberRef(id, uid), emptyMember(uid, displayName, photoURL))
+      tx.set(memberRef(id, uid), emptyMember(uid, displayName, photoURL, avatar ?? profile?.avatar ?? null))
       tx.set(roundRef(id, round.id), round)
       tx.set(userRef(uid), { groupIds: [...(profile.groupIds ?? []), id] }, { merge: true })
     })
     return id
   },
 
-  async joinGroup(uid, code, displayName, photoURL) {
+  async joinGroup(uid, code, displayName, photoURL, avatar: AvatarLook | null = null) {
     const { db } = getFirebase()
     const normalized = normalizeCode(code)
     const mapped = await getDoc(codeRef(normalized))
@@ -200,7 +226,7 @@ export const firebaseStore: StoreAPI = {
       const profile = user.data() as UserProfile
       const already = await tx.get(memberRef(groupId, uid))
       if (!already.exists()) {
-        tx.set(memberRef(groupId, uid), emptyMember(uid, displayName, photoURL))
+        tx.set(memberRef(groupId, uid), emptyMember(uid, displayName, photoURL, avatar ?? profile?.avatar ?? null))
       }
       const ids = new Set(profile.groupIds ?? [])
       ids.add(groupId)
@@ -321,8 +347,7 @@ export const firebaseStore: StoreAPI = {
     if (
       groupSnap.exists() &&
       (groupSnap.data() as Group).currentRoundId === roundId &&
-      memberIds.length > 0 &&
-      memberIds.every((id) => finished.has(id))
+      shouldAutoClose(memberIds.length, finished.size)
     ) {
       await firebaseStore.closeAndAdvance(groupId)
     }

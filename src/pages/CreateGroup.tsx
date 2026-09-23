@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
+import { StickMark } from '../components/ui'
 import { getStore } from '../store'
 
 export function CreateGroup() {
@@ -16,7 +17,13 @@ export function CreateGroup() {
     setBusy(true)
     setError(null)
     try {
-      const id = await getStore().createGroup(session.uid, name, profile.displayName, profile.photoURL)
+      const id = await getStore().createGroup(
+        session.uid,
+        name,
+        profile.displayName,
+        profile.photoURL,
+        profile.avatar,
+      )
       nav(`/grupo/${id}`)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo crear')
@@ -26,20 +33,21 @@ export function CreateGroup() {
   }
 
   return (
-    <form onSubmit={(e) => void submit(e)} className="space-y-4">
-      <h1 className="text-3xl font-extrabold">Nuevo grupo</h1>
-      <p className="text-white/60">Saldrá un código de 6 letras para que se unan tus amigos.</p>
+    <form onSubmit={(e) => void submit(e)} className="space-y-5">
+      <StickMark />
+      <h1 className="display text-5xl font-bold leading-none text-ink">Nueva liga</h1>
+      <p className="text-lg font-bold text-ink/70">Te sale un código de 6 letras. Lo mandas y que se unan.</p>
       <input
-        className="w-full rounded-2xl border border-line bg-card px-4 py-3 outline-none"
+        className="input text-lg"
         placeholder="Ej. Los del piso"
         value={name}
         onChange={(e) => setName(e.target.value)}
         required
       />
-      <button className="btn btn-lime w-full" disabled={busy}>
-        Crear y empezar ronda 1
+      <button className="btn btn-pink w-full" disabled={busy}>
+        Crear y abrir ronda 1
       </button>
-      {error && <p className="text-sm text-pink">{error}</p>}
+      {error && <p className="text-sm font-black text-pink">{error}</p>}
     </form>
   )
 }

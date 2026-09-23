@@ -8,6 +8,10 @@ import './index.css'
 
 registerSW({ immediate: true })
 
+document.documentElement.lang = 'es'
+document.documentElement.setAttribute('translate', 'no')
+document.body?.classList.add('notranslate')
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <BrowserRouter>

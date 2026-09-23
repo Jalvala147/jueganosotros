@@ -24,32 +24,11 @@ npm test
 npm run build
 ```
 
-## Conectar Firebase
+## Firebase (tú lo conectas)
 
-1. Crea un proyecto en [Firebase Console](https://console.firebase.google.com).
-2. Activa **Authentication** → Google y Apple.
-3. Activa **Firestore** en modo producción y pega las reglas de `firestore.rules`.
-4. Añade una app web y copia la config a `.env.local`:
+Guía clic a clic: [FIREBASE.md](./FIREBASE.md).
 
-```
-VITE_USE_LOCAL=false
-VITE_FIREBASE_API_KEY=
-VITE_FIREBASE_AUTH_DOMAIN=
-VITE_FIREBASE_PROJECT_ID=
-VITE_FIREBASE_STORAGE_BUCKET=
-VITE_FIREBASE_MESSAGING_SENDER_ID=
-VITE_FIREBASE_APP_ID=
-```
-
-5. En Google Cloud, añade tu dominio a los orígenes autorizados del cliente OAuth.
-6. Para Apple: cuenta de Apple Developer, Service ID, return URL de Firebase Auth.
-
-Despliegue:
-
-```bash
-npm run build
-npx firebase deploy
-```
+Resumen: crea el proyecto, app web, activa Google (Apple si tienes Developer), crea Firestore, pega `firestore.rules` y copia la config a `.env.local` con `VITE_USE_LOCAL=false`. Luego `npm run build` y `npx firebase deploy`.
 
 ## Cómo se puntúa
 
