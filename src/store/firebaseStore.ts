@@ -22,7 +22,7 @@ import {
 import { makeGroupCode, normalizeCode } from '../lib/codes'
 import { GAME_MAP, nextGameId } from '../games/catalog'
 import { getFirebase } from '../lib/firebase'
-import { closeRoundScoring, emptyMember, resetSeasonMember } from '../lib/scoring'
+import { closeRoundScoring, emptyMember, resetSeasonMember, shouldAutoClose } from '../lib/scoring'
 import type { GameId, Group, GroupSnapshot, Member, PlayRecord, Round, UserProfile } from '../types'
 import { defaultSettings, firstRound, type AuthAPI, type StoreAPI } from './types'
 
@@ -321,8 +321,7 @@ export const firebaseStore: StoreAPI = {
     if (
       groupSnap.exists() &&
       (groupSnap.data() as Group).currentRoundId === roundId &&
-      memberIds.length > 0 &&
-      memberIds.every((id) => finished.has(id))
+      shouldAutoClose(memberIds.length, finished.size)
     ) {
       await firebaseStore.closeAndAdvance(groupId)
     }

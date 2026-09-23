@@ -2,7 +2,7 @@ import { makeGroupCode, normalizeCode } from '../lib/codes'
 import { makeId } from '../lib/ids'
 import { nextGameId } from '../games/catalog'
 import { GAME_MAP } from '../games/catalog'
-import { closeRoundScoring, emptyMember, resetSeasonMember } from '../lib/scoring'
+import { closeRoundScoring, emptyMember, resetSeasonMember, shouldAutoClose } from '../lib/scoring'
 import type { Group, GroupSnapshot, Member, PlayRecord, Round, UserProfile } from '../types'
 import { defaultSettings, firstRound, type AuthAPI, type SessionUser, type StoreAPI } from './types'
 
@@ -270,7 +270,7 @@ export const localStore: StoreAPI = {
 
       const memberIds = Object.keys(db.members[groupId] ?? {})
       const plays = db.plays[groupId]![roundId]!
-      shouldClose = memberIds.length > 0 && memberIds.every((id) => plays[id]?.finished)
+      shouldClose = shouldAutoClose(memberIds.length, memberIds.filter((id) => plays[id]?.finished).length)
     })
     if (shouldClose) await localStore.closeAndAdvance(groupId)
     return record!

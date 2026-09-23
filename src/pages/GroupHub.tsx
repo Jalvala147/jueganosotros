@@ -72,6 +72,12 @@ export function GroupHub() {
           <h2 className="text-2xl font-extrabold">{game.name}</h2>
           <p className="text-sm text-white/65">{game.blurb}</p>
         </div>
+        {snap.members.length < 2 && (
+          <p className="px-4 pt-3 text-sm text-cyan">
+            Invita con el código. La ronda no avanza hasta que haya al menos 2 jugadores y todos
+            hayan tirado.
+          </p>
+        )}
         <div className="flex items-center justify-between px-4 py-3 text-sm text-white/60">
           <span>
             {finishedCount}/{snap.members.length} ya jugaron

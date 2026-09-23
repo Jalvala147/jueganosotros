@@ -1,5 +1,9 @@
 import type { Member, PlayRecord, RoundResult } from '../types'
 
+export function shouldAutoClose(memberCount: number, finishedCount: number): boolean {
+  return memberCount >= 2 && finishedCount >= memberCount && memberCount > 0
+}
+
 export const PLACEMENT_TABLE = [25, 18, 15, 12, 10, 8, 6, 4, 2, 1] as const
 export const PARTICIPATION_POINTS = 2
 export const STARTING_ELO = 1000
