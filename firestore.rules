@@ -1,0 +1,43 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+    function isSelf(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    match /users/{uid} {
+      allow read: if signedIn();
+      allow create, update: if isSelf(uid);
+    }
+
+    match /groupCodes/{code} {
+      allow read: if signedIn();
+      allow create: if signedIn();
+    }
+
+    match /groups/{groupId} {
+      allow read: if signedIn();
+      allow create: if signedIn() && request.resource.data.createdBy == request.auth.uid;
+      allow update: if signedIn();
+
+      match /members/{uid} {
+        allow read: if signedIn();
+        allow create: if isSelf(uid);
+        allow update: if signedIn();
+      }
+
+      match /rounds/{roundId} {
+        allow read: if signedIn();
+        allow create, update: if signedIn();
+
+        match /plays/{uid} {
+          allow read: if signedIn();
+          allow create, update: if isSelf(uid);
+        }
+      }
+    }
+  }
+}
