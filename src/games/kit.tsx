@@ -15,10 +15,10 @@ export function GameFrame({
   label?: string
 }) {
   return (
-    <div className="overflow-hidden rounded-3xl border border-line bg-[#0a0d18]">
-      <div className="flex items-center justify-between px-4 py-2 text-xs text-white/50">
+    <div className="overflow-hidden rounded-[1.6rem] border-[3px] border-ink bg-[#17141f] shadow-[0_8px_0_#1c1430]">
+      <div className="flex items-center justify-between px-4 py-2 text-xs font-extrabold text-white/70">
         <span>{label}</span>
-        <span className="mono text-lime">{score ?? ''}</span>
+        <span className="display text-lg text-yellow">{score ?? ''}</span>
       </div>
       {children}
     </div>
@@ -37,7 +37,7 @@ export function useCountdown(seconds = 3) {
 
 export function Overlay({ text }: { text: string }) {
   return (
-    <div className="flex h-80 items-center justify-center text-6xl font-extrabold text-lime">
+    <div className="flex h-80 items-center justify-center text-6xl font-extrabold text-yellow">
       {text}
     </div>
   )

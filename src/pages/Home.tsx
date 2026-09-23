@@ -1,12 +1,21 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
-import { Avatar } from '../components/ui'
+import { Avatar, FaceRow, GameArt } from '../components/ui'
+import { GAME_MAP } from '../games/catalog'
 import { getStore } from '../store'
+import type { MyGroup } from '../store/types'
+
+function badgeTone(rank: number) {
+  if (rank === 1) return 'bg-pink text-white'
+  if (rank === 2) return 'bg-yellow text-ink'
+  if (rank === 3) return 'bg-purple text-white'
+  return 'bg-mute text-white'
+}
 
 export function Home() {
   const { session, profile } = useAuth()
-  const [groups, setGroups] = useState<{ id: string; name: string; code: string; seasonPoints?: number }[]>([])
+  const [groups, setGroups] = useState<MyGroup[]>([])
 
   useEffect(() => {
     if (!session) return
@@ -15,56 +24,69 @@ export function Home() {
 
   return (
     <div className="space-y-5">
-      <div className="flex items-center gap-3">
-        <Avatar name={profile?.displayName ?? '?'} photo={profile?.photoURL} size={56} />
+      <div className="flex items-end justify-between gap-3">
         <div>
-          <p className="text-sm font-bold text-white/50">¿Listo para la ronda?</p>
-          <h1 className="display text-3xl font-bold">{profile?.displayName}</h1>
+          <p className="text-xs font-black uppercase tracking-[0.18em] text-ink/55">¿Listo para la ronda?</p>
+          <h1 className="display text-5xl font-bold leading-[0.9] text-ink">{profile?.displayName}</h1>
         </div>
+        <Avatar name={profile?.displayName ?? '?'} photo={profile?.photoURL} size={64} ring="#fff" />
       </div>
 
       <div className="grid grid-cols-2 gap-3">
-        <Link to="/crear" className="card flex min-h-32 flex-col justify-between p-4">
-          <span className="text-3xl">🚀</span>
-          <span className="display text-lg font-bold">Crear grupo</span>
+        <Link to="/crear" className="btn btn-pink min-h-28 w-full flex-col text-lg">
+          <span className="text-2xl leading-none">＋</span>
+          Crear grupo
         </Link>
-        <Link to="/unirse" className="card flex min-h-32 flex-col justify-between p-4">
-          <span className="text-3xl">🔑</span>
-          <span className="display text-lg font-bold">Código</span>
+        <Link to="/unirse" className="btn btn-yellow min-h-28 w-full flex-col text-lg">
+          <span className="text-2xl leading-none">＃</span>
+          Código
         </Link>
       </div>
 
-      <h2 className="display text-xl font-bold">Tus ligas</h2>
+      <h2 className="display text-3xl font-bold text-ink">Tus ligas</h2>
       <div className="space-y-3">
         {groups.length === 0 && (
-          <div className="card p-5 text-white/70">
+          <div className="card-dark p-5 text-base font-bold">
             Aún no hay ligas. Crea un grupo, manda el código al WhatsApp y que empiece el caos.
           </div>
         )}
-        {groups.map((g, i) => (
-          <Link
-            key={g.id}
-            to={`/grupo/${g.id}`}
-            className="card flex items-center justify-between overflow-hidden p-4"
-          >
-            <div className="flex items-center gap-3">
-              <div
-                className="grid h-12 w-12 place-items-center rounded-2xl text-2xl"
-                style={{ background: ['#ff3d8f', '#c6ff3d', '#3ef0ff', '#ff8a1f'][i % 4] }}
-              >
-                {['👑', '🔥', '⚡', '🎯'][i % 4]}
+        {groups.map((g, i) => {
+          const game = g.gameId ? GAME_MAP[g.gameId] : null
+          const dark = i % 2 === 1
+          return (
+            <Link
+              key={g.id}
+              to={`/grupo/${g.id}`}
+              className={`${dark ? 'card-dark' : 'card'} block overflow-hidden no-underline`}
+            >
+              {game ? (
+                <GameArt game={game} className="h-32" />
+              ) : (
+                <div className="h-32 bg-gradient-to-br from-pink to-yellow" />
+              )}
+              <div className="px-4 pb-4">
+                <div className="-mt-5 flex items-end justify-between">
+                  <FaceRow people={g.members} ring={dark ? '#4C4660' : '#fff'} />
+                  <span
+                    className={`display grid h-12 min-w-12 place-items-center rounded-2xl border-[3px] border-ink px-2 text-lg font-bold ${badgeTone(g.rank)}`}
+                  >
+                    #{g.rank}
+                  </span>
+                </div>
+                <div className="mt-3 flex items-end justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="display truncate text-2xl font-bold">{g.name}</p>
+                    <p className="text-[11px] font-black tracking-[0.18em] opacity-60">{g.code}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="display text-4xl font-bold leading-none">{g.seasonPoints ?? 0}</p>
+                    <p className="text-[11px] font-black uppercase opacity-60">pts</p>
+                  </div>
+                </div>
               </div>
-              <div>
-                <p className="display text-lg font-bold">{g.name}</p>
-                <p className="mono text-xs text-white/45">{g.code}</p>
-              </div>
-            </div>
-            <div className="text-right">
-              <p className="display text-2xl font-bold text-lime">{g.seasonPoints ?? 0}</p>
-              <p className="text-[11px] font-extrabold uppercase text-white/40">pts</p>
-            </div>
-          </Link>
-        ))}
+            </Link>
+          )
+        })}
       </div>
     </div>
   )

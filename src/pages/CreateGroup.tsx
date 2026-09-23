@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
+import { StickMark } from '../components/ui'
 import { getStore } from '../store'
 
 export function CreateGroup() {
@@ -26,21 +27,21 @@ export function CreateGroup() {
   }
 
   return (
-    <form onSubmit={(e) => void submit(e)} className="space-y-4">
-      <p className="text-5xl">🚀</p>
-      <h1 className="display text-4xl font-bold">Nueva liga</h1>
-      <p className="text-white/70">Te sale un código de 6 letras. Lo mandas y que se unan.</p>
+    <form onSubmit={(e) => void submit(e)} className="space-y-5">
+      <StickMark />
+      <h1 className="display text-6xl font-bold leading-[0.88] text-ink">Nueva liga</h1>
+      <p className="text-lg font-bold text-ink/70">Te sale un código de 6 letras. Lo mandas y que se unan.</p>
       <input
-        className="input"
+        className="input text-lg"
         placeholder="Ej. Los del piso"
         value={name}
         onChange={(e) => setName(e.target.value)}
         required
       />
-      <button className="btn btn-lime w-full" disabled={busy}>
+      <button className="btn btn-pink w-full" disabled={busy}>
         Crear y abrir ronda 1
       </button>
-      {error && <p className="text-sm font-bold text-pink">{error}</p>}
+      {error && <p className="text-sm font-black text-pink">{error}</p>}
     </form>
   )
 }

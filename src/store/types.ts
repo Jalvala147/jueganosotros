@@ -16,14 +16,21 @@ export type AuthAPI = {
   signOut(): Promise<void>
 }
 
+export type MyGroup = {
+  id: string
+  name: string
+  code: string
+  seasonPoints?: number
+  rank: number
+  gameId?: GameId
+  members: { name: string; photo: string | null }[]
+}
+
 export type StoreAPI = {
   ensureUser(session: SessionUser, nickname?: string): Promise<UserProfile>
   watchProfile(uid: string, cb: (profile: UserProfile | null) => void): () => void
   updateNickname(uid: string, name: string): Promise<void>
-  watchMyGroups(
-    uid: string,
-    cb: (groups: { id: string; name: string; code: string; seasonPoints?: number }[]) => void,
-  ): () => void
+  watchMyGroups(uid: string, cb: (groups: MyGroup[]) => void): () => void
   createGroup(uid: string, name: string, displayName: string, photoURL: string | null): Promise<string>
   joinGroup(uid: string, code: string, displayName: string, photoURL: string | null): Promise<string>
   watchGroup(groupId: string, cb: (snap: GroupSnapshot | null) => void): () => void

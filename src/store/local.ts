@@ -2,9 +2,9 @@ import { makeGroupCode, normalizeCode } from '../lib/codes'
 import { makeId } from '../lib/ids'
 import { nextGameId } from '../games/catalog'
 import { GAME_MAP } from '../games/catalog'
-import { closeRoundScoring, emptyMember, resetSeasonMember, shouldAutoClose } from '../lib/scoring'
+import { closeRoundScoring, compareMembers, emptyMember, resetSeasonMember, shouldAutoClose } from '../lib/scoring'
 import type { Group, GroupSnapshot, Member, PlayRecord, Round, UserProfile } from '../types'
-import { defaultSettings, firstRound, type AuthAPI, type SessionUser, type StoreAPI } from './types'
+import { defaultSettings, firstRound, type AuthAPI, type MyGroup, type SessionUser, type StoreAPI } from './types'
 
 const DATA_KEY = 'jn.v1.data'
 const SESSION_KEY = 'jn.v1.session'
@@ -126,12 +126,21 @@ export const localStore: StoreAPI = {
       const groups = (db.users[uid]?.groupIds ?? [])
         .map((id) => db.groups[id])
         .filter(Boolean)
-        .map((g) => ({
-          id: g!.id,
-          name: g!.name,
-          code: g!.code,
-          seasonPoints: db.members[g!.id]?.[uid]?.seasonPoints,
-        }))
+        .map((g) => {
+          const members = Object.values(db.members[g!.id] ?? {}).sort(compareMembers)
+          const me = members.findIndex((m) => m.uid === uid)
+          const round = db.rounds[g!.id]?.[g!.currentRoundId]
+          const card: MyGroup = {
+            id: g!.id,
+            name: g!.name,
+            code: g!.code,
+            seasonPoints: db.members[g!.id]?.[uid]?.seasonPoints,
+            rank: me >= 0 ? me + 1 : members.length,
+            gameId: round?.gameId,
+            members: members.slice(0, 8).map((m) => ({ name: m.displayName, photo: m.photoURL })),
+          }
+          return card
+        })
       cb(groups)
     }
     emit()

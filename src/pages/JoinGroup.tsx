@@ -26,9 +26,13 @@ export function JoinGroup() {
   }
 
   return (
-    <form onSubmit={(e) => void submit(e)} className="space-y-4">
-      <p className="text-5xl">🔑</p>
-      <h1 className="display text-4xl font-bold">Unirme</h1>
+    <form onSubmit={(e) => void submit(e)} className="space-y-5">
+      <div className="flex h-16 items-end gap-2" aria-hidden>
+        <span className="block h-8 w-4 rounded-full bg-pink" />
+        <span className="block h-14 w-4 rounded-full bg-yellow" />
+        <span className="block h-10 w-4 rounded-full bg-purple" />
+      </div>
+      <h1 className="display text-6xl font-bold leading-[0.88] text-ink">Unirme</h1>
       <input
         className="input display text-center text-3xl tracking-[0.35em] uppercase"
         placeholder="K7M2QX"
@@ -39,7 +43,7 @@ export function JoinGroup() {
       <button className="btn btn-pink w-full" disabled={busy}>
         Entrar a la liga
       </button>
-      {error && <p className="text-sm font-bold text-pink">{error}</p>}
+      {error && <p className="text-sm font-black text-pink">{error}</p>}
     </form>
   )
 }

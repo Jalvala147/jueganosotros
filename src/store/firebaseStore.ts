@@ -22,9 +22,9 @@ import {
 import { makeGroupCode, normalizeCode } from '../lib/codes'
 import { GAME_MAP, nextGameId } from '../games/catalog'
 import { getFirebase } from '../lib/firebase'
-import { closeRoundScoring, emptyMember, resetSeasonMember, shouldAutoClose } from '../lib/scoring'
+import { closeRoundScoring, compareMembers, emptyMember, resetSeasonMember, shouldAutoClose } from '../lib/scoring'
 import type { GameId, Group, GroupSnapshot, Member, PlayRecord, Round, UserProfile } from '../types'
-import { defaultSettings, firstRound, type AuthAPI, type StoreAPI } from './types'
+import { defaultSettings, firstRound, type AuthAPI, type MyGroup, type StoreAPI } from './types'
 
 function isMobile() {
   return /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
@@ -141,15 +141,28 @@ export const firebaseStore: StoreAPI = {
             const m = await getDoc(memberRef(id, uid))
             if (!g.exists()) return null
             const data = g.data() as Group
-            return {
+            const membersSnap = await getDocs(collection(getFirebase().db, 'groups', id, 'members'))
+            const members = membersSnap.docs.map((d) => d.data() as Member).sort(compareMembers)
+            const me = members.findIndex((member) => member.uid === uid)
+            const roundSnap = data.currentRoundId
+              ? await getDoc(roundRef(id, data.currentRoundId))
+              : null
+            const card: MyGroup = {
               id: data.id,
               name: data.name,
               code: data.code,
               seasonPoints: (m.data() as Member | undefined)?.seasonPoints,
+              rank: me >= 0 ? me + 1 : members.length,
+              gameId: (roundSnap?.data() as Round | undefined)?.gameId,
+              members: members.slice(0, 8).map((member) => ({
+                name: member.displayName,
+                photo: member.photoURL,
+              })),
             }
+            return card
           }),
         )
-      ).filter(Boolean) as { id: string; name: string; code: string; seasonPoints?: number }[]
+      ).filter(Boolean) as MyGroup[]
       cb(groups)
     })
   },

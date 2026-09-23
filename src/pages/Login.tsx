@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Navigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
+import { StickMark } from '../components/ui'
 import { isLocalMode } from '../lib/backend'
 
 export function Login() {
@@ -25,41 +26,37 @@ export function Login() {
   }
 
   return (
-    <div className="relative mx-auto flex min-h-dvh max-w-lg flex-col justify-center overflow-hidden px-5 py-10">
-      <div className="blob -left-8 top-10 h-32 w-32 rounded-full bg-pink" />
-      <div className="blob right-0 top-24 h-24 w-24 rounded-full bg-lime" />
-      <div className="blob bottom-20 left-16 h-20 w-20 rounded-full bg-cyan" />
-
+    <div className="relative mx-auto flex min-h-dvh max-w-lg flex-col justify-center px-5 py-10">
       <div className="relative z-10 pop">
-        <div className="mx-auto mb-5 grid h-28 w-28 place-items-center rounded-[2rem] bg-gradient-to-br from-lime to-cyan shadow-[0_10px_0_#3d6b00]">
-          <span className="text-6xl">🎮</span>
+        <div className="mb-5 flex justify-center">
+          <StickMark size={112} />
         </div>
-        <p className="display text-center text-xs font-semibold uppercase tracking-[0.28em] text-lime">
+        <p className="display text-center text-xs font-bold uppercase tracking-[0.28em] text-ink/55">
           liga de minijuegos
         </p>
-        <h1 className="display mt-2 text-center text-6xl font-bold leading-[0.9]">
+        <h1 className="display mt-2 text-center text-6xl font-bold leading-[0.84] text-ink">
           Juega
           <br />
-          <span className="text-lime">Nosotros</span>
+          <span className="text-pink">Nosotros</span>
         </h1>
-        <p className="mx-auto mt-4 max-w-sm text-center text-white/75">
+        <p className="mx-auto mt-4 max-w-sm text-center text-base font-bold text-ink/75">
           20 minijuegos. Misma partida para tu grupo. La siguiente ronda sale cuando todos
           hayan jugado — no cada 24 horas.
         </p>
 
         <div className="mt-8 space-y-3">
-          <button className="btn btn-lime w-full" disabled={busy || local} onClick={() => void run(signInGoogle)}>
-            <span>🟢</span> Entrar con Google
+          <button className="btn btn-pink w-full" disabled={busy || local} onClick={() => void run(signInGoogle)}>
+            Entrar con Google
           </button>
-          <button className="btn btn-ghost w-full" disabled={busy || local} onClick={() => void run(signInApple)}>
-            <span></span> Entrar con Apple
+          <button className="btn btn-yellow w-full" disabled={busy || local} onClick={() => void run(signInApple)}>
+            Entrar con Apple
           </button>
           {local && (
             <div className="card p-4">
-              <p className="text-sm font-bold text-orange">Modo prueba (sin Firebase)</p>
-              <p className="mt-1 text-sm text-white/70">
+              <p className="text-sm font-black text-pink">Modo prueba (sin Firebase)</p>
+              <p className="mt-1 text-sm font-bold text-ink/70">
                 Abre otra pestaña, entra con otro apodo y únete al mismo código. Cuando quieras
-                Google y Apple, sigue los pasos de <span className="text-lime">FIREBASE.md</span>.
+                Google y Apple, sigue los pasos de <span className="text-pink">FIREBASE.md</span>.
               </p>
               <input
                 className="input mt-3"
@@ -77,7 +74,7 @@ export function Login() {
             </div>
           )}
         </div>
-        {error && <p className="mt-4 text-center text-sm font-bold text-pink">{error}</p>}
+        {error && <p className="mt-4 text-center text-sm font-black text-pink">{error}</p>}
       </div>
     </div>
   )
