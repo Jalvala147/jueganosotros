@@ -1,0 +1,62 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;700;800&family=IBM+Plex+Mono:wght@500;600&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: 'Outfit', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+  --color-ink: #070814;
+  --color-card: #12162a;
+  --color-line: #232846;
+  --color-lime: #c8f542;
+  --color-pink: #ff4d8d;
+  --color-cyan: #3de0ff;
+}
+
+html, body, #root {
+  min-height: 100%;
+  background: #070814;
+  color: #f4f1ea;
+  font-family: var(--font-sans);
+}
+
+body {
+  background-image:
+    radial-gradient(1200px 600px at 80% -10%, rgba(200, 245, 66, 0.12), transparent 50%),
+    radial-gradient(900px 500px at -10% 20%, rgba(255, 77, 141, 0.14), transparent 45%),
+    linear-gradient(#070814, #0b1020 40%, #070814);
+}
+
+button, a, input {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.grain {
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.35'/%3E%3C/svg%3E");
+}
+
+.card {
+  background: rgba(18, 22, 42, 0.86);
+  border: 1px solid #232846;
+  border-radius: 1.25rem;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35);
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 999px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  min-height: 3.1rem;
+  padding: 0 1.2rem;
+  transition: transform .12s ease, filter .12s ease;
+}
+.btn:active { transform: scale(0.98); }
+.btn-lime { background: #c8f542; color: #08110a; }
+.btn-pink { background: #ff4d8d; color: #fff; }
+.btn-ghost { background: #181d33; color: #f4f1ea; border: 1px solid #2a3154; }
+.btn:disabled { opacity: .45; }
+
+.mono { font-family: var(--font-mono); }
