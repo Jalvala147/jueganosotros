@@ -2,6 +2,7 @@ import { makeGroupCode, normalizeCode } from '../lib/codes'
 import { makeId } from '../lib/ids'
 import { nextGameId } from '../games/catalog'
 import { GAME_MAP } from '../games/catalog'
+import { buildCareer } from '../lib/career'
 import { closeRoundScoring, compareMembers, emptyMember, resetSeasonMember, shouldAutoClose } from '../lib/scoring'
 import type { AvatarLook, Group, GroupSnapshot, Member, PlayRecord, Round, UserProfile } from '../types'
 import { defaultSettings, firstRound, type AuthAPI, type MyGroup, type SessionUser, type StoreAPI } from './types'
@@ -157,6 +158,24 @@ export const localStore: StoreAPI = {
           return card
         })
       cb(groups)
+    }
+    emit()
+    return onChange(emit)
+  },
+
+  watchCareer(uid, cb) {
+    const emit = () => {
+      const db = load()
+      const ids = db.users[uid]?.groupIds ?? []
+      const packs = ids
+        .map((id) => db.groups[id])
+        .filter((g): g is NonNullable<typeof g> => Boolean(g))
+        .map((group) => ({
+          group,
+          members: Object.values(db.members[group.id] ?? {}),
+          rounds: Object.values(db.rounds[group.id] ?? {}),
+        }))
+      cb(buildCareer(uid, packs))
     }
     emit()
     return onChange(emit)

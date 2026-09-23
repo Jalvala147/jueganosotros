@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
 import { Avatar, FaceRow, GameArt } from '../components/ui'
+import { emptyCareer, type Career } from '../lib/career'
 import { GAME_MAP } from '../games/catalog'
 import { getStore } from '../store'
 import type { MyGroup } from '../store/types'
@@ -16,10 +17,16 @@ function badgeTone(rank: number) {
 export function Home() {
   const { session, profile } = useAuth()
   const [groups, setGroups] = useState<MyGroup[]>([])
+  const [career, setCareer] = useState<Career>(emptyCareer())
 
   useEffect(() => {
     if (!session) return
     return getStore().watchMyGroups(session.uid, setGroups)
+  }, [session])
+
+  useEffect(() => {
+    if (!session) return
+    return getStore().watchCareer(session.uid, setCareer)
   }, [session])
 
   return (
@@ -48,6 +55,25 @@ export function Home() {
           Código
         </Link>
       </div>
+
+      <Link to="/vitrina" className="card block p-4 no-underline">
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-[11px] font-black uppercase tracking-[0.18em] text-ink/45">Tu vitrina</p>
+            <p className="display text-2xl font-bold leading-none">
+              {career.playStreak > 0 ? `Racha · día ${career.playStreak}` : 'Racha, marcas y juegos'}
+            </p>
+          </div>
+          <span className="display grid h-12 w-12 shrink-0 place-items-center rounded-2xl border-[3px] border-ink bg-yellow text-xl font-bold">
+            {career.wins}
+          </span>
+        </div>
+        <div className="mt-3 grid grid-cols-3 gap-2 text-center">
+          <Mini n={career.roundsPlayed} label="Partidas" />
+          <Mini n={career.wins} label="Victorias" />
+          <Mini n={career.rivals} label="Rivales" />
+        </div>
+      </Link>
 
       <h2 className="display text-3xl font-bold text-ink">Tus ligas</h2>
       <div className="space-y-3">
@@ -94,6 +120,15 @@ export function Home() {
           )
         })}
       </div>
+    </div>
+  )
+}
+
+function Mini({ n, label }: { n: number; label: string }) {
+  return (
+    <div className="rounded-2xl bg-[#fff8ee] px-2 py-2">
+      <p className="display text-xl font-bold leading-none">{n}</p>
+      <p className="text-[10px] font-black uppercase text-ink/50">{label}</p>
     </div>
   )
 }

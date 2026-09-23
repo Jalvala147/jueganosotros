@@ -442,7 +442,7 @@ export function Piano({ seed, onFinish }: GameProps) {
               <button
                 key={c}
                 onClick={() => tap(c, ri)}
-                className={`h-16 border border-white/5 ${c === black ? 'bg-zinc-100' : 'bg-zinc-900'}`}
+                className={`h-16 border-[3px] border-ink ${c === black ? 'bg-ink' : 'bg-white'}`}
               />
             ))}
           </div>

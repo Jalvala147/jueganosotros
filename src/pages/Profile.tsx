@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
 import { Avatar } from '../components/ui'
 import { isLocalMode } from '../lib/backend'
@@ -59,6 +60,9 @@ export function Profile() {
   return (
     <div className="space-y-4">
       <h1 className="display text-center text-4xl font-bold leading-none text-ink">Tu ficha</h1>
+      <Link to="/vitrina" className="btn btn-yellow w-full">
+        Ver tu vitrina
+      </Link>
       <form onSubmit={(e) => void save(e)} className="card space-y-4 p-5">
         <div className="flex justify-center">
           <Avatar name={name || '?'} photo={profile?.photoURL} look={look} size={112} ring="#ff4571" />

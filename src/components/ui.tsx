@@ -1,4 +1,5 @@
 import { AvatarFace } from './AvatarFace'
+import { GamePreview } from './GamePreview'
 import { defaultAvatar, hashName, type AvatarLook } from '../lib/avatar'
 import type { GameMeta } from '../types'
 
@@ -48,56 +49,17 @@ export function FaceRow({
   )
 }
 
-const SCENES: Record<string, { from: string; to: string }> = {
-  Reflejo: { from: '#28DAD4', to: '#FFD145' },
-  Timing: { from: '#8260F6', to: '#28DAD4' },
-  Arcade: { from: '#FF4571', to: '#FFD145' },
-  Memoria: { from: '#8260F6', to: '#FF4571' },
-  Endless: { from: '#28DAD4', to: '#8260F6' },
-  Precisión: { from: '#FFD145', to: '#FF4571' },
-  Puntería: { from: '#FF4571', to: '#8260F6' },
-  Deporte: { from: '#28DAD4', to: '#FFD145' },
-  Ritmo: { from: '#4C4660', to: '#8260F6' },
-  Puzzle: { from: '#FFD145', to: '#28DAD4' },
-  Números: { from: '#28DAD4', to: '#FF4571' },
-  Palabras: { from: '#FFD145', to: '#8260F6' },
-  Acción: { from: '#FF4571', to: '#FFD145' },
-}
-
 export function GameArt({ game, className = 'h-32' }: { game: GameMeta; className?: string }) {
-  const scene = SCENES[game.category] ?? { from: '#FF4571', to: '#FFD145' }
-  return (
-    <div
-      className={`relative overflow-hidden ${className}`}
-      style={{ background: `linear-gradient(145deg, ${scene.from}, ${scene.to})` }}
-    >
-      <span className="absolute -left-1 top-2 h-16 w-4 rounded-full bg-white/35" />
-      <span className="absolute right-5 top-0 h-full w-4 rounded-full bg-black/10" />
-      <span className="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-white/25" />
-      <span
-        className="absolute bottom-3 right-14 h-0 w-0 border-x-[14px] border-b-[24px] border-x-transparent"
-        style={{ borderBottomColor: 'rgba(255,255,255,.7)' }}
-      />
-      <div className="absolute inset-0 grid place-items-center text-5xl drop-shadow-[0_6px_0_rgba(28,20,48,0.15)]">
-        {game.emoji}
-      </div>
-    </div>
-  )
+  return <GamePreview id={game.id} className={className} />
 }
 
 export function GameGlyph({ game, size = 64 }: { game: GameMeta; size?: number }) {
-  const scene = SCENES[game.category] ?? { from: '#FF4571', to: '#FFD145' }
   return (
     <div
-      className="relative grid shrink-0 place-items-center overflow-hidden rounded-[1.15rem] border-[3px] border-ink shadow-[0_4px_0_#1c1430]"
-      style={{
-        width: size,
-        height: size,
-        background: `linear-gradient(150deg, ${scene.from}, ${scene.to})`,
-      }}
+      className="relative shrink-0 overflow-hidden rounded-[1.15rem] border-[3px] border-ink shadow-[0_4px_0_#1c1430]"
+      style={{ width: size, height: size }}
     >
-      <span className="absolute right-1 top-1 h-1/2 w-1.5 rounded-full bg-white/55" />
-      <span style={{ fontSize: size * 0.42 }}>{game.emoji}</span>
+      <GamePreview id={game.id} className="h-full w-full" />
     </div>
   )
 }
