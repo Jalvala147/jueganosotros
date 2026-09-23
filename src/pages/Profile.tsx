@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useAuth } from '../auth/AuthProvider'
+import { Avatar } from '../components/ui'
 import { isLocalMode } from '../lib/backend'
 
 export function Profile() {
@@ -15,12 +16,15 @@ export function Profile() {
 
   return (
     <form onSubmit={(e) => void save(e)} className="space-y-4">
-      <h1 className="text-3xl font-extrabold">Perfil</h1>
-      <p className="text-sm text-white/45">
-        {isLocalMode() ? 'Modo local (este navegador)' : `Sesión ${session?.provider}`}
+      <div className="flex justify-center">
+        <Avatar name={name || '?'} photo={profile?.photoURL} size={88} />
+      </div>
+      <h1 className="display text-center text-4xl font-bold">Tu ficha</h1>
+      <p className="text-center text-sm font-extrabold text-white/45">
+        {isLocalMode() ? 'Modo local · este navegador' : `Cuenta ${session?.provider}`}
       </p>
       <input
-        className="w-full rounded-2xl border border-line bg-card px-4 py-3 outline-none"
+        className="input text-center"
         value={name}
         onChange={(e) => {
           setName(e.target.value)
@@ -28,7 +32,7 @@ export function Profile() {
         }}
       />
       <button className="btn btn-lime w-full">Guardar apodo</button>
-      {saved && <p className="text-sm text-lime">Apodo actualizado</p>}
+      {saved && <p className="text-center text-sm font-bold text-lime">¡Apodo actualizado!</p>}
     </form>
   )
 }

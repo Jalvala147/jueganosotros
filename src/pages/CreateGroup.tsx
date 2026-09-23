@@ -27,19 +27,20 @@ export function CreateGroup() {
 
   return (
     <form onSubmit={(e) => void submit(e)} className="space-y-4">
-      <h1 className="text-3xl font-extrabold">Nuevo grupo</h1>
-      <p className="text-white/60">Saldrá un código de 6 letras para que se unan tus amigos.</p>
+      <p className="text-5xl">🚀</p>
+      <h1 className="display text-4xl font-bold">Nueva liga</h1>
+      <p className="text-white/70">Te sale un código de 6 letras. Lo mandas y que se unan.</p>
       <input
-        className="w-full rounded-2xl border border-line bg-card px-4 py-3 outline-none"
+        className="input"
         placeholder="Ej. Los del piso"
         value={name}
         onChange={(e) => setName(e.target.value)}
         required
       />
       <button className="btn btn-lime w-full" disabled={busy}>
-        Crear y empezar ronda 1
+        Crear y abrir ronda 1
       </button>
-      {error && <p className="text-sm text-pink">{error}</p>}
+      {error && <p className="text-sm font-bold text-pink">{error}</p>}
     </form>
   )
 }

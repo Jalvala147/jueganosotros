@@ -27,18 +27,19 @@ export function JoinGroup() {
 
   return (
     <form onSubmit={(e) => void submit(e)} className="space-y-4">
-      <h1 className="text-3xl font-extrabold">Unirme</h1>
+      <p className="text-5xl">🔑</p>
+      <h1 className="display text-4xl font-bold">Unirme</h1>
       <input
-        className="w-full rounded-2xl border border-line bg-card px-4 py-3 text-center font-mono text-2xl tracking-[0.35em] uppercase outline-none"
+        className="input display text-center text-3xl tracking-[0.35em] uppercase"
         placeholder="K7M2QX"
         value={code}
         onChange={(e) => setCode(e.target.value.toUpperCase())}
         required
       />
       <button className="btn btn-pink w-full" disabled={busy}>
-        Entrar al grupo
+        Entrar a la liga
       </button>
-      {error && <p className="text-sm text-pink">{error}</p>}
+      {error && <p className="text-sm font-bold text-pink">{error}</p>}
     </form>
   )
 }

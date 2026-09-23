@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
 import { Streaks } from '../components/Streaks'
+import { Avatar, CodeChip, GameGlyph } from '../components/ui'
 import { GAME_MAP } from '../games/catalog'
 import { compareMembers, formPoints } from '../lib/scoring'
 import { getStore } from '../store'
@@ -53,52 +54,67 @@ export function GroupHub() {
     <div className="space-y-5">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="mono text-xs text-white/40">TEMPORADA {snap.group.seasonNumber}</p>
-          <h1 className="text-3xl font-extrabold tracking-tight">{snap.group.name}</h1>
-          <p className="mono text-lime">{snap.group.code}</p>
+          <p className="text-[11px] font-extrabold uppercase tracking-widest text-white/40">
+            Temporada {snap.group.seasonNumber}
+          </p>
+          <h1 className="display text-3xl font-bold">{snap.group.name}</h1>
+          <div className="mt-2">
+            <CodeChip code={snap.group.code} />
+          </div>
         </div>
         {session.uid === snap.group.createdBy && (
-          <button className="text-xs text-white/40" onClick={() => void resetSeason()}>
-            Nueva temporada
+          <button className="text-xs font-extrabold text-white/35" onClick={() => void resetSeason()}>
+            Reset
           </button>
         )}
       </div>
 
-      <section className="card overflow-hidden">
-        <div className="px-4 py-3" style={{ background: `${game.accent}22` }}>
-          <p className="text-[11px] uppercase tracking-wider text-white/50">
-            Ronda {snap.round.index} · {game.category}
-          </p>
-          <h2 className="text-2xl font-extrabold">{game.name}</h2>
-          <p className="text-sm text-white/65">{game.blurb}</p>
+      <section className="card overflow-hidden p-4">
+        <div className="flex items-center gap-3">
+          <GameGlyph game={game} />
+          <div className="min-w-0">
+            <p className="text-[11px] font-extrabold uppercase tracking-widest text-white/45">
+              Ronda {snap.round.index} · {game.category}
+            </p>
+            <h2 className="display text-2xl font-bold">{game.name}</h2>
+            <p className="text-sm text-white/65">{game.blurb}</p>
+          </div>
         </div>
         {snap.members.length < 2 && (
-          <p className="px-4 pt-3 text-sm text-cyan">
-            Invita con el código. La ronda no avanza hasta que haya al menos 2 jugadores y todos
-            hayan tirado.
+          <p className="mt-3 rounded-2xl bg-cyan/15 px-3 py-2 text-sm font-bold text-cyan">
+            Manda el código. La ronda espera a que se una alguien más.
           </p>
         )}
-        <div className="flex items-center justify-between px-4 py-3 text-sm text-white/60">
+        <div className="mt-3 flex items-center justify-between text-sm font-extrabold text-white/60">
           <span>
-            {finishedCount}/{snap.members.length} ya jugaron
+            {finishedCount}/{snap.members.length} listos
           </span>
-          <span className="mono">{game.direction === 'higher' ? 'más alto gana' : 'menos gana'}</span>
+          <span>{game.direction === 'higher' ? '↑ más alto' : '↓ menos gana'}</span>
+        </div>
+        <div className="mt-3 flex -space-x-2">
+          {snap.members.map((m) => (
+            <div key={m.uid} className={snap.plays[m.uid]?.finished ? 'opacity-100' : 'opacity-35'}>
+              <Avatar name={m.displayName} photo={m.photoURL} size={34} />
+            </div>
+          ))}
         </div>
         {!myTurnDone ? (
-          <Link to={`/grupo/${groupId}/jugar`} className="btn btn-lime mx-4 mb-4">
-            Jugar mi turno
+          <Link to={`/grupo/${groupId}/jugar`} className="btn btn-lime mt-4 w-full shine">
+            ▶️ Jugar mi turno
           </Link>
         ) : (
-          <p className="px-4 pb-4 text-sm text-lime">Turno enviado. Esperando al resto.</p>
+          <p className="mt-4 text-center text-sm font-extrabold text-lime">Turno enviado. A esperar…</p>
         )}
       </section>
 
-      <div className="flex gap-2 overflow-x-auto text-sm">
+      <div className="flex gap-2 overflow-x-auto pb-1">
         {(['ronda', 'temporada', 'duelos', 'juegos'] as Tab[]).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
-            className={`rounded-full px-3 py-1.5 capitalize ${tab === t ? 'bg-lime text-ink' : 'bg-card text-white/60'}`}
+            className={`display rounded-full px-4 py-1.5 text-sm font-bold capitalize ${
+              tab === t ? 'bg-lime text-ink' : 'bg-[#2a1646] text-white/60'
+            }`}
           >
             {t}
           </button>
@@ -117,19 +133,20 @@ export function GroupHub() {
           {timedOut ? 'Cerrar ronda (tiempo agotado)' : 'Cerrar y saltar ausentes'}
         </button>
       )}
-      {error && <p className="text-sm text-pink">{error}</p>}
+      {error && <p className="text-sm font-bold text-pink">{error}</p>}
 
       {snap.history.length > 0 && (
         <section>
-          <h3 className="mb-2 font-bold">Últimas rondas</h3>
+          <h3 className="display mb-2 font-bold">Últimas rondas</h3>
           <div className="space-y-2">
             {snap.history.map((r) => {
+              const meta = GAME_MAP[r.gameId]
               const winner = r.results?.[0]
               const name = table.find((m) => m.uid === winner?.uid)?.displayName
               return (
-                <div key={r.id} className="card flex justify-between px-4 py-3 text-sm">
-                  <span>
-                    #{r.index} {GAME_MAP[r.gameId].name}
+                <div key={r.id} className="card-flat flex items-center justify-between px-4 py-3">
+                  <span className="flex items-center gap-2 font-extrabold">
+                    <span>{meta.emoji}</span> #{r.index} {meta.name}
                   </span>
                   <span className="text-lime">{name ?? '—'}</span>
                 </div>
@@ -144,18 +161,22 @@ export function GroupHub() {
 
 function SeasonTable({ members, me }: { members: Member[]; me: string }) {
   return (
-    <div className="card divide-y divide-line">
+    <div className="space-y-2">
       {members.map((m, i) => (
-        <div key={m.uid} className={`flex items-center gap-3 px-4 py-3 ${m.uid === me ? 'bg-lime/5' : ''}`}>
-          <span className="mono w-6 text-white/40">{i === 0 ? '👑' : i + 1}</span>
+        <div
+          key={m.uid}
+          className={`card flex items-center gap-3 p-3 ${i === 0 ? 'ring-2 ring-lime' : ''} ${m.uid === me ? 'outline outline-2 outline-pink/40' : ''}`}
+        >
+          <span className="display w-8 text-center text-xl font-bold">{i === 0 ? '👑' : i + 1}</span>
+          <Avatar name={m.displayName} photo={m.photoURL} />
           <div className="min-w-0 flex-1">
-            <p className="truncate font-bold">{m.displayName}</p>
+            <p className="truncate font-extrabold">{m.displayName}</p>
             <Streaks member={m} compact />
           </div>
           <div className="text-right">
-            <p className="mono font-bold text-lime">{m.seasonPoints}</p>
-            <p className="text-[11px] text-white/35">
-              {m.wins}W · Elo {m.elo} · forma {formPoints(m.lastFivePoints)}
+            <p className="display text-2xl font-bold text-lime">{m.seasonPoints}</p>
+            <p className="text-[11px] font-extrabold text-white/40">
+              {m.wins}W · {m.elo} elo · {formPoints(m.lastFivePoints)} forma
             </p>
           </div>
         </div>
@@ -185,7 +206,7 @@ function RoundTable({
     return 0
   })
   return (
-    <div className="card divide-y divide-line">
+    <div className="space-y-2">
       {rows.map((m) => {
         const play = snap.plays[m.uid]
         const score =
@@ -194,12 +215,15 @@ function RoundTable({
               ? '•••'
               : String(play.best)
             : play?.official.length
-              ? `${play.official.length} intento(s)`
-              : 'Pendiente'
+              ? `${play.official.length} tiro(s)`
+              : 'Esperando'
         return (
-          <div key={m.uid} className="flex items-center justify-between px-4 py-3">
-            <p className="font-bold">{m.displayName}</p>
-            <p className="mono text-sm text-white/70">{score}</p>
+          <div key={m.uid} className="card-flat flex items-center justify-between px-3 py-3">
+            <div className="flex items-center gap-3">
+              <Avatar name={m.displayName} photo={m.photoURL} size={38} />
+              <p className="font-extrabold">{m.displayName}</p>
+            </div>
+            <p className="display font-bold text-lime">{score}</p>
           </div>
         )
       })}
@@ -211,13 +235,16 @@ function H2H({ me, members }: { me: Member; members: Member[] }) {
   const others = members.filter((m) => m.uid !== me.uid)
   if (!others.length) return <p className="text-white/50">Invita a alguien para ver duelos.</p>
   return (
-    <div className="card divide-y divide-line">
+    <div className="space-y-2">
       {others.map((o) => {
         const cell = me.h2h[o.uid] ?? { wins: 0, losses: 0 }
         return (
-          <div key={o.uid} className="flex items-center justify-between px-4 py-3">
-            <p className="font-bold">{o.displayName}</p>
-            <p className="mono text-sm">
+          <div key={o.uid} className="card-flat flex items-center justify-between px-3 py-3">
+            <div className="flex items-center gap-3">
+              <Avatar name={o.displayName} photo={o.photoURL} size={38} />
+              <p className="font-extrabold">{o.displayName}</p>
+            </div>
+            <p className="display text-lg font-bold">
               <span className="text-lime">{cell.wins}</span>
               <span className="text-white/30"> — </span>
               <span className="text-pink">{cell.losses}</span>
@@ -230,16 +257,16 @@ function H2H({ me, members }: { me: Member; members: Member[] }) {
 }
 
 function Kings({ members }: { members: Member[] }) {
-  const games = Object.values(GAME_MAP)
   return (
-    <div className="space-y-2">
-      {games.map((g) => {
+    <div className="grid grid-cols-2 gap-2">
+      {Object.values(GAME_MAP).map((g) => {
         const king = [...members].sort((a, b) => (b.gameWins[g.id] ?? 0) - (a.gameWins[g.id] ?? 0))[0]
         const wins = king ? king.gameWins[g.id] ?? 0 : 0
         return (
-          <div key={g.id} className="card flex items-center justify-between px-4 py-3 text-sm">
-            <span>{g.name}</span>
-            <span className="text-white/60">{wins ? `${king!.displayName} · ${wins}` : '—'}</span>
+          <div key={g.id} className="card-flat p-3">
+            <p className="text-2xl">{g.emoji}</p>
+            <p className="display font-bold">{g.name}</p>
+            <p className="text-xs font-extrabold text-white/50">{wins ? `${king!.displayName} · ${wins}` : 'sin rey'}</p>
           </div>
         )
       })}

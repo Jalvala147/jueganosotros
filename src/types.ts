@@ -123,6 +123,7 @@ export type GameMeta = {
   blurb: string
   category: string
   accent: string
+  emoji: string
   direction: ScoreDirection
   hint: string
 }
