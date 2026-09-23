@@ -15,12 +15,16 @@ export function GameFrame({
   label?: string
 }) {
   return (
-    <div className="overflow-hidden rounded-[1.6rem] border-[3px] border-ink bg-[#17141f] shadow-[0_8px_0_#1c1430]">
-      <div className="flex items-center justify-between px-4 py-2 text-xs font-extrabold text-white/70">
-        <span>{label}</span>
-        <span className="display text-lg text-yellow">{score ?? ''}</span>
+    <div className="overflow-hidden rounded-[1.7rem] border-[3px] border-ink bg-white shadow-[0_8px_0_#1c1430]">
+      <div className="flex items-center justify-between gap-2 bg-yellow px-3 py-2">
+        <span className="min-w-0 truncate text-[11px] font-black uppercase tracking-[0.16em] text-ink/70">{label}</span>
+        {score != null && score !== '' && (
+          <span className="display shrink-0 rounded-full border-[3px] border-ink bg-white px-3 py-0.5 text-lg font-bold leading-none text-ink">
+            {score}
+          </span>
+        )}
       </div>
-      {children}
+      <div className="bg-[#fff8ee] text-ink">{children}</div>
     </div>
   )
 }
@@ -37,8 +41,8 @@ export function useCountdown(seconds = 3) {
 
 export function Overlay({ text }: { text: string }) {
   return (
-    <div className="flex h-80 items-center justify-center text-6xl font-extrabold text-yellow">
-      {text}
+    <div className="grid h-80 place-items-center rounded-[1.7rem] border-[3px] border-ink bg-white shadow-[0_8px_0_#1c1430]">
+      <span className="display text-8xl font-bold leading-none text-pink">{text}</span>
     </div>
   )
 }

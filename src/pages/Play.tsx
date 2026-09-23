@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
-import { GameArt } from '../components/ui'
+import { GamePreview } from '../components/GamePreview'
 import { GameHost } from '../games/Host'
 import { GAME_MAP } from '../games/catalog'
 import { getStore } from '../store'
@@ -56,11 +56,12 @@ export function Play() {
   if (phase === 'live') {
     return (
       <div className="space-y-3">
-        <div className="flex items-center justify-between text-sm font-black text-ink/70">
-          <span>
-            {game.emoji} {game.name}
+        <div className="flex items-center justify-between gap-2 text-sm font-black text-ink/70">
+          <span className="flex min-w-0 items-center gap-2">
+            <GamePreview id={game.id} className="h-10 w-10 shrink-0 rounded-xl" />
+            <span className="truncate">{game.name}</span>
           </span>
-          <span className="rounded-full border-[3px] border-ink bg-pink px-2 py-0.5 text-xs text-white">
+          <span className="shrink-0 rounded-full border-[3px] border-ink bg-pink px-2 py-0.5 text-xs text-white">
             {kind === 'practice' ? 'Práctica' : `Oficial ${(play?.official.length ?? 0) + 1}`}
           </span>
         </div>
@@ -103,12 +104,16 @@ export function Play() {
         ← Liga
       </Link>
       <div className="card overflow-hidden">
-        <GameArt game={game} className="h-44" />
-        <div className="p-5">
-          <p className="text-[11px] font-black uppercase tracking-widest text-ink/45">{game.category}</p>
-          <h1 className="display break-words text-4xl font-bold leading-none">{game.name}</h1>
-          <p className="mt-2 font-bold text-ink/70">{game.hint}</p>
+        <div className="relative">
+          <GamePreview id={game.id} className="h-56" />
+          <p className="absolute left-3 top-3 rounded-full border-[3px] border-ink bg-white/95 px-3 py-1 text-[11px] font-black uppercase tracking-wide">
+            {game.category}
+          </p>
+          <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-ink/80 to-transparent px-4 pb-4 pt-10">
+            <h1 className="display break-words text-4xl font-bold leading-none text-white">{game.name}</h1>
+          </div>
         </div>
+        <p className="p-4 font-bold text-ink/70">{game.hint}</p>
       </div>
       <p className="text-center text-sm font-black text-ink/60">
         {officialLeft} intento(s) oficial(es)

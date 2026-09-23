@@ -55,8 +55,8 @@ export function Simon({ seed, onFinish }: GameProps) {
           <button
             key={c}
             onClick={() => tap(i)}
-            className="h-28 rounded-3xl"
-            style={{ background: c, filter: lit === i ? 'brightness(1.4)' : 'brightness(0.7)' }}
+            className="h-28 rounded-[1.4rem] border-[3px] border-ink shadow-[0_4px_0_#1c1430]"
+            style={{ background: c, filter: lit === i ? 'brightness(1.25)' : 'brightness(0.82)' }}
           />
         ))}
       </div>
@@ -153,8 +153,8 @@ export function Puzzle2048({ seed, onFinish }: GameProps) {
         {board.map((n, i) => (
           <div
             key={i}
-            className="flex aspect-square items-center justify-center rounded-xl text-lg font-extrabold"
-            style={{ background: n ? `hsl(${40 + Math.log2(n) * 18} 80% 45%)` : '#15192c' }}
+            className="display flex aspect-square items-center justify-center rounded-2xl border-[3px] border-ink text-lg font-bold text-ink"
+            style={{ background: n ? `hsl(${28 + Math.log2(n) * 16} 90% 62%)` : '#efe6ff' }}
           >
             {n || ''}
           </div>
@@ -212,9 +212,11 @@ export function Memory({ seed, onFinish }: GameProps) {
             <button
               key={i}
               onClick={() => tap(i)}
-              className="flex aspect-square items-center justify-center rounded-2xl bg-card text-2xl"
+              className={`flex aspect-square items-center justify-center rounded-2xl border-[3px] border-ink text-2xl shadow-[0_3px_0_#1c1430] ${
+                show ? 'bg-white' : 'bg-purple text-white'
+              }`}
             >
-              {show ? icon : '•'}
+              {show ? icon : '✦'}
             </button>
           )
         })}
@@ -264,9 +266,9 @@ export function QuickMaths({ seed, onFinish }: GameProps) {
   return (
     <GameFrame score={score} label={`${time}s`}>
       <div className="space-y-3 p-4">
-        <p className="text-center text-5xl font-extrabold">{q.text}</p>
+        <p className="display text-center text-5xl font-bold text-ink">{q.text}</p>
         <input
-          className="w-full rounded-2xl border border-line bg-ink px-4 py-3 text-center text-2xl outline-none"
+          className="input text-center text-2xl"
           inputMode="numeric"
           value={value}
           onChange={(e) => setValue(e.target.value)}
@@ -280,7 +282,7 @@ export function QuickMaths({ seed, onFinish }: GameProps) {
           }}
         />
         <button
-          className="btn btn-lime w-full"
+          className="btn btn-pink w-full"
           onClick={() => {
             if (Number(value) === q.answer) {
               setScore((s) => s + 1)
@@ -325,9 +327,13 @@ export function Wordle({ seed, onFinish }: GameProps) {
             <div key={ri} className="grid grid-cols-5 gap-1">
               {r.split('').map((ch, i) => {
                 const color =
-                  word[i] === ch ? 'bg-lime text-ink' : word.includes(ch) ? 'bg-amber-400 text-ink' : 'bg-zinc-700'
+                  word[i] === ch
+                    ? 'bg-yellow text-ink'
+                    : word.includes(ch)
+                      ? 'bg-pink text-white'
+                      : 'bg-mute text-white'
                 return (
-                  <div key={i} className={`rounded-lg py-2 text-center font-extrabold uppercase ${color}`}>
+                  <div key={i} className={`rounded-lg border-[3px] border-ink py-2 text-center font-extrabold uppercase ${color}`}>
                     {ch}
                   </div>
                 )
@@ -336,7 +342,7 @@ export function Wordle({ seed, onFinish }: GameProps) {
           ))}
         </div>
         <input
-          className="w-full rounded-2xl border border-line bg-ink px-4 py-3 text-center uppercase tracking-[0.4em] outline-none"
+          className="input text-center uppercase tracking-[0.28em]"
           maxLength={5}
           value={guess}
           onChange={(e) => setGuess(e.target.value)}
@@ -344,7 +350,7 @@ export function Wordle({ seed, onFinish }: GameProps) {
             if (e.key === 'Enter') submit()
           }}
         />
-        <button className="btn btn-lime w-full" onClick={submit}>
+        <button className="btn btn-pink w-full" onClick={submit}>
           Probar
         </button>
       </div>
@@ -410,8 +416,8 @@ export function WaterSort({ seed, onFinish }: GameProps) {
           <button
             key={i}
             onClick={() => tap(i)}
-            className={`flex h-40 flex-col-reverse overflow-hidden rounded-b-3xl rounded-t-lg border-2 ${
-              sel === i ? 'border-lime' : 'border-white/10'
+            className={`flex h-40 flex-col-reverse overflow-hidden rounded-b-[1.4rem] rounded-t-lg border-[3px] bg-white ${
+              sel === i ? 'border-pink' : 'border-ink'
             }`}
           >
             {t.map((c, k) => (
