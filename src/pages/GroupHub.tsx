@@ -99,7 +99,7 @@ export function GroupHub() {
           ))}
         </div>
         {!myTurnDone ? (
-          <Link to={`/grupo/${groupId}/jugar`} className="btn btn-lime mt-4 w-full shine">
+          <Link to={`/grupo/${groupId}/jugar`} className="btn btn-lime mt-4 w-full">
             ▶️ Jugar mi turno
           </Link>
         ) : (

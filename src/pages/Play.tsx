@@ -124,7 +124,7 @@ export function Play() {
         </button>
       )}
       <button
-        className="btn btn-lime w-full shine"
+        className="btn btn-lime w-full"
         disabled={officialLeft <= 0}
         onClick={() => {
           setKind('official')
