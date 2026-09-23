@@ -1,3 +1,7 @@
+import type { AvatarLook } from './lib/avatar'
+
+export type { AvatarLook }
+
 export type GameId =
   | 'green-tap'
   | 'reaction'
@@ -28,6 +32,7 @@ export type UserProfile = {
   uid: string
   displayName: string
   photoURL: string | null
+  avatar: AvatarLook | null
   email: string | null
   createdAt: number
   groupIds: string[]
@@ -60,6 +65,7 @@ export type Member = {
   uid: string
   displayName: string
   photoURL: string | null
+  avatar: AvatarLook | null
   joinedAt: number
   seasonPoints: number
   wins: number
@@ -123,6 +129,7 @@ export type GameMeta = {
   blurb: string
   category: string
   accent: string
+  emoji: string
   direction: ScoreDirection
   hint: string
 }

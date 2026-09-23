@@ -185,16 +185,19 @@ export function Memory({ seed, onFinish }: GameProps) {
     const next = [...open, i]
     setOpen(next)
     if (next.length === 2) {
-      setMoves((m) => m + 1)
       const [a, b] = next
-      if (deck[a!] === deck[b!]) {
-        const cleared = [...done, a!, b!]
-        setDone(cleared)
-        setOpen([])
-        if (cleared.length === 16) {
+      const matched = deck[a!] === deck[b!]
+      setMoves((m) => {
+        const count = m + 1
+        if (matched && done.length + 2 === 16) {
           const secs = Math.round((Date.now() - started) / 1000)
-          onFinish(moves * 10 + secs + 10)
+          onFinish(count * 10 + secs)
         }
+        return count
+      })
+      if (matched) {
+        setDone([...done, a!, b!])
+        setOpen([])
       } else window.setTimeout(() => setOpen([]), 650)
     }
   }
@@ -359,9 +362,19 @@ export function WaterSort({ seed, onFinish }: GameProps) {
     if (left > 0) return
     const rng = mulberry32(seed)
     const colors = ['#ef4444', '#22c55e', '#3b82f6', '#eab308']
-    const pool = shuffle(rng, colors.flatMap((c) => [c, c, c, c]))
-    const filled = [0, 1, 2, 3].map((i) => pool.slice(i * 4, i * 4 + 4))
-    setTubes([...filled, [], []])
+    let tubes: string[][] = colors.map((c) => [c, c, c, c])
+    tubes.push([], [])
+    for (let n = 0; n < 28; n++) {
+      const from = randInt(rng, 0, tubes.length - 1)
+      const to = randInt(rng, 0, tubes.length - 1)
+      if (from === to || tubes[from]!.length === 0 || tubes[to]!.length >= 4) continue
+      const color = tubes[from]![tubes[from]!.length - 1]
+      const top = tubes[to]![tubes[to]!.length - 1]
+      if (top && top !== color) continue
+      tubes = tubes.map((t) => [...t])
+      tubes[to]!.push(tubes[from]!.pop()!)
+    }
+    setTubes(tubes)
   }, [left, seed])
 
   function tap(i: number) {

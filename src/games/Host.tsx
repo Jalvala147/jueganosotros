@@ -32,14 +32,12 @@ const MAP: Record<GameId, ComponentType<GameProps>> = {
 export function GameHost({ id, seed, onFinish }: { id: GameId } & GameProps) {
   const Game = MAP[id]
   const once = useRef(false)
-  return (
-    <Game
-      seed={seed}
-      onFinish={(score) => {
-        if (once.current) return
-        once.current = true
-        onFinish(score)
-      }}
-    />
-  )
+  const finishRef = useRef(onFinish)
+  finishRef.current = onFinish
+  const stable = useRef((score: number) => {
+    if (once.current) return
+    once.current = true
+    finishRef.current(score)
+  })
+  return <Game key={`${id}:${seed}`} seed={seed} onFinish={stable.current} />
 }

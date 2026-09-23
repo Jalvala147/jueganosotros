@@ -5,8 +5,19 @@ import {
   formPoints,
   placementPoints,
   rankByScore,
+  shouldAutoClose,
   updateElo,
 } from './scoring'
+
+describe('shouldAutoClose', () => {
+  it('no cierra con un solo jugador', () => {
+    expect(shouldAutoClose(1, 1)).toBe(false)
+  })
+  it('cierra cuando todos han jugado siendo 2 o más', () => {
+    expect(shouldAutoClose(2, 2)).toBe(true)
+    expect(shouldAutoClose(3, 2)).toBe(false)
+  })
+})
 
 describe('placementPoints', () => {
   it('usa la tabla F1', () => {

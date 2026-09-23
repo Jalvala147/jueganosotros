@@ -16,7 +16,13 @@ export function JoinGroup() {
     setBusy(true)
     setError(null)
     try {
-      const id = await getStore().joinGroup(session.uid, code, profile.displayName, profile.photoURL)
+      const id = await getStore().joinGroup(
+        session.uid,
+        code,
+        profile.displayName,
+        profile.photoURL,
+        profile.avatar,
+      )
       nav(`/grupo/${id}`)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo entrar')
@@ -26,19 +32,24 @@ export function JoinGroup() {
   }
 
   return (
-    <form onSubmit={(e) => void submit(e)} className="space-y-4">
-      <h1 className="text-3xl font-extrabold">Unirme</h1>
+    <form onSubmit={(e) => void submit(e)} className="space-y-5">
+      <div className="flex h-16 items-end gap-2" aria-hidden>
+        <span className="block h-8 w-4 rounded-full bg-pink" />
+        <span className="block h-14 w-4 rounded-full bg-yellow" />
+        <span className="block h-10 w-4 rounded-full bg-purple" />
+      </div>
+      <h1 className="display text-5xl font-bold leading-none text-ink">Unirme</h1>
       <input
-        className="w-full rounded-2xl border border-line bg-card px-4 py-3 text-center font-mono text-2xl tracking-[0.35em] uppercase outline-none"
+        className="input display text-center text-2xl tracking-[0.22em] uppercase"
         placeholder="K7M2QX"
         value={code}
         onChange={(e) => setCode(e.target.value.toUpperCase())}
         required
       />
       <button className="btn btn-pink w-full" disabled={busy}>
-        Entrar al grupo
+        Entrar a la liga
       </button>
-      {error && <p className="text-sm text-pink">{error}</p>}
+      {error && <p className="text-sm font-black text-pink">{error}</p>}
     </form>
   )
 }

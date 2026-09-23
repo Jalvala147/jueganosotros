@@ -3,7 +3,7 @@ import { getRedirectResult } from 'firebase/auth'
 import { isLocalMode } from '../lib/backend'
 import { getFirebase } from '../lib/firebase'
 import { getAuthAPI, getStore, type SessionUser } from '../store'
-import type { UserProfile } from '../types'
+import type { AvatarLook, UserProfile } from '../types'
 
 type AuthCtx = {
   session: SessionUser | null
@@ -14,6 +14,7 @@ type AuthCtx = {
   signInLocal: (name: string) => Promise<void>
   signOut: () => Promise<void>
   setNickname: (name: string) => Promise<void>
+  setAvatar: (look: AvatarLook) => Promise<void>
 }
 
 const Ctx = createContext<AuthCtx | null>(null)
@@ -58,6 +59,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setNickname: async (name) => {
       if (!session) return
       await store.updateNickname(session.uid, name)
+    },
+    setAvatar: async (look) => {
+      if (!session) return
+      await store.updateAvatar(session.uid, look)
     },
   }
 
