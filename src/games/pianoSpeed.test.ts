@@ -2,16 +2,18 @@ import { describe, expect, it } from 'vitest'
 import { PIANO_MAX_SPEED, PIANO_START_SPEED, pianoSpeed } from './pianoSpeed'
 
 describe('velocidad de Teclas', () => {
-  it('sigue subiendo mucho después del puntaje 140', () => {
+  it('sube con cada tecla desde la primera y ya va muy rápido mucho antes del 140', () => {
     expect(pianoSpeed(0)).toBe(PIANO_START_SPEED)
-    expect(pianoSpeed(10) - pianoSpeed(0)).toBeCloseTo(8)
-    expect(pianoSpeed(40)).toBeGreaterThan(pianoSpeed(10) * 2)
-    expect(pianoSpeed(140)).toBeGreaterThan(pianoSpeed(40))
-    expect(pianoSpeed(140)).toBeLessThan(PIANO_MAX_SPEED)
+    expect(pianoSpeed(1)).toBeGreaterThan(pianoSpeed(0) * 1.1)
+    expect(pianoSpeed(2)).toBeGreaterThan(pianoSpeed(1) * 1.1)
+    expect(pianoSpeed(15)).toBeGreaterThan(pianoSpeed(0) * 4)
+    expect(pianoSpeed(15)).toBeLessThan(PIANO_MAX_SPEED)
+    expect(pianoSpeed(40)).toBeGreaterThan(pianoSpeed(15))
+    expect(pianoSpeed(140)).toBe(PIANO_MAX_SPEED)
   })
 
-  it('también acelera con el tiempo y solo tiene un tope muy lejano', () => {
+  it('también acelera con el tiempo, sin pasarse del tope', () => {
     expect(pianoSpeed(4, 8000)).toBeGreaterThan(pianoSpeed(4, 0))
-    expect(pianoSpeed(400, 60_000)).toBe(PIANO_MAX_SPEED)
+    expect(pianoSpeed(80, 30_000)).toBe(PIANO_MAX_SPEED)
   })
 })
