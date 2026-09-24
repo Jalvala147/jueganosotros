@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Navigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
 import { StickMark } from '../components/ui'
@@ -10,6 +10,13 @@ export function Login() {
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const local = isLocalMode()
+
+  useEffect(() => {
+    const saved = sessionStorage.getItem('jn.authError')
+    if (!saved) return
+    sessionStorage.removeItem('jn.authError')
+    setError(saved)
+  }, [])
 
   if (!loading && session) return <Navigate to="/" replace />
 

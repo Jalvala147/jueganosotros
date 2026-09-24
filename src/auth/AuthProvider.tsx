@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useMemo, useState, type ReactNode
 import { getRedirectResult } from 'firebase/auth'
 import { isLocalMode } from '../lib/backend'
 import { getFirebase } from '../lib/firebase'
+import { authErrorMessage } from '../store/firebaseStore'
 import { getAuthAPI, getStore, type SessionUser } from '../store'
 import type { AvatarLook, UserProfile } from '../types'
 
@@ -28,7 +29,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!isLocalMode()) {
-      getRedirectResult(getFirebase().auth).catch(() => undefined)
+      getRedirectResult(getFirebase().auth).catch((error) => {
+        sessionStorage.setItem('jn.authError', authErrorMessage(error))
+      })
     }
     return auth.subscribe((user) => {
       setSession(user)

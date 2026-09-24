@@ -28,8 +28,43 @@ import { closeRoundScoring, compareMembers, emptyMember, majorityReached, resetS
 import type { AvatarLook, ChatMessage, GameId, Group, GroupSnapshot, Member, PlayRecord, Round, UserProfile } from '../types'
 import { defaultSettings, firstRound, type AuthAPI, type MyGroup, type StoreAPI } from './types'
 
-function isMobile() {
-  return /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
+function authCode(error: unknown) {
+  return typeof error === 'object' && error && 'code' in error ? String((error as { code: string }).code) : ''
+}
+
+export function authErrorMessage(error: unknown) {
+  const code = authCode(error)
+  if (code === 'auth/unauthorized-domain') {
+    return 'Este dominio no está autorizado en Firebase. Agrégalo en Authentication → Settings → Authorized domains.'
+  }
+  if (code === 'auth/popup-blocked') {
+    return 'El iPhone bloqueó la ventana de Google. Ábrelo en Safari, no dentro de WhatsApp o Instagram.'
+  }
+  if (code === 'auth/popup-closed-by-user' || code === 'auth/cancelled-popup-request') {
+    return 'Se cerró la ventana de Google antes de entrar.'
+  }
+  if (code === 'auth/operation-not-allowed') {
+    return 'Activa Google en Firebase → Authentication → Sign-in method.'
+  }
+  if (code === 'auth/web-storage-unsupported') {
+    return 'Safari está bloqueando el guardado. Sal de la navegación privada e inténtalo otra vez.'
+  }
+  if (error instanceof Error && error.message) return error.message
+  return 'No se pudo entrar'
+}
+
+async function signInWith(provider: GoogleAuthProvider | OAuthProvider) {
+  const { auth } = getFirebase()
+  try {
+    await signInWithPopup(auth, provider)
+  } catch (error) {
+    const code = authCode(error)
+    if (code === 'auth/popup-blocked' || code === 'auth/operation-not-supported-in-this-environment') {
+      await signInWithRedirect(auth, provider)
+      return
+    }
+    throw new Error(authErrorMessage(error))
+  }
 }
 
 export const firebaseAuth: AuthAPI = {
@@ -51,19 +86,15 @@ export const firebaseAuth: AuthAPI = {
     })
   },
   async signInGoogle() {
-    const { auth } = getFirebase()
     const provider = new GoogleAuthProvider()
     provider.setCustomParameters({ prompt: 'select_account' })
-    if (isMobile()) await signInWithRedirect(auth, provider)
-    else await signInWithPopup(auth, provider)
+    await signInWith(provider)
   },
   async signInApple() {
-    const { auth } = getFirebase()
     const provider = new OAuthProvider('apple.com')
     provider.addScope('email')
     provider.addScope('name')
-    if (isMobile()) await signInWithRedirect(auth, provider)
-    else await signInWithPopup(auth, provider)
+    await signInWith(provider)
   },
   async signInLocal() {
     throw new Error('En Firebase entra con Google o Apple')
