@@ -295,15 +295,13 @@ function RoundTable({
       {rows.map((m, i) => {
         const play = snap.plays[m.uid]
         const numeric = Boolean(play?.finished && play.best != null)
-        const hidden = numeric && hideScores && m.uid !== me
-        const tries = play ? attemptsToBest(play.official, play.best) : 0
-        const score = numeric
-          ? hidden
-            ? '•••'
-            : String(play!.best)
-          : play?.official.length
-            ? `Intento ${play.official.length}/2`
-            : 'Esperando'
+        const total = snap.group.settings.officialAttempts || 2
+        const used = play?.official.length ?? 0
+        const hasBest = play?.best != null && used > 0
+        const hidden = Boolean(hasBest && hideScores && m.uid !== me)
+        const showScore = Boolean(hasBest && !hidden)
+        const score = showScore ? String(play!.best) : hidden ? '•••' : 'Esperando'
+        const attempt = used > 0 ? `${used}/${total}` : null
         return (
           <div
             key={m.uid}
@@ -318,15 +316,15 @@ function RoundTable({
                 {numeric && i === 0 ? '👑 ' : ''}
                 {m.displayName}
               </p>
-              {numeric && !hidden && (
-                <p className="text-sm font-extrabold opacity-80">
-                  Intento {tries}/2
-                </p>
+            </div>
+            <div className="flex shrink-0 items-baseline gap-2">
+              <p className={`display text-right font-bold leading-none ${showScore || hidden ? 'text-4xl' : 'max-w-[7rem] text-sm uppercase'}`}>
+                {score}
+              </p>
+              {attempt && (
+                <p className="text-sm font-black leading-none">{attempt}</p>
               )}
             </div>
-            <p className={`display shrink-0 text-right font-bold leading-none ${numeric ? 'text-4xl' : 'max-w-[7rem] text-sm uppercase'}`}>
-              {score}
-            </p>
           </div>
         )
       })}
