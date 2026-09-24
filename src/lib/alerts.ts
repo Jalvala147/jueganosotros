@@ -47,16 +47,21 @@ function ahead(direction: 'higher' | 'lower' | undefined, score: number, mine: n
   return direction === 'lower' ? score < mine : score > mine
 }
 
-export function aheadNotes(snap: GroupSnapshot, uid: string): string[] {
+export type AlertNote = { key: string; text: string }
+
+export function aheadNotes(snap: GroupSnapshot, uid: string): AlertNote[] {
   const mine = snap.plays[uid]?.best
   const game = findGame(snap.round.gameId)
-  const notes: string[] = []
+  const notes: AlertNote[] = []
   if (mine != null) {
     for (const member of snap.members) {
       if (member.uid === uid) continue
       const score = snap.plays[member.uid]?.best
       if (score != null && ahead(game?.direction, score, mine)) {
-        notes.push(`${member.displayName} te superó en ${game?.name ?? 'la ronda'}`)
+        notes.push({
+          key: `pass_${snap.group.id}_${snap.round.id}_${member.uid}`,
+          text: `${member.displayName} te superó en ${game?.name ?? 'la ronda'}`,
+        })
       }
     }
   }
@@ -64,16 +69,21 @@ export function aheadNotes(snap: GroupSnapshot, uid: string): string[] {
   if (myPoints == null) return notes
   for (const member of snap.members) {
     if (member.uid === uid) continue
-    if (member.seasonPoints > myPoints) notes.push(`${member.displayName} te pasó en la temporada`)
+    if (member.seasonPoints > myPoints) {
+      notes.push({
+        key: `season_${snap.group.id}_${member.uid}`,
+        text: `${member.displayName} te pasó en la temporada`,
+      })
+    }
   }
   return notes
 }
 
-export function passNotes(prev: GroupSnapshot, next: GroupSnapshot, uid: string): string[] {
+export function passNotes(prev: GroupSnapshot, next: GroupSnapshot, uid: string): AlertNote[] {
   if (prev.round.id !== next.round.id) return []
   const mine = next.plays[uid]?.best ?? prev.plays[uid]?.best
   const game = findGame(next.round.gameId)
-  const notes: string[] = []
+  const notes: AlertNote[] = []
   if (mine != null) {
     for (const member of next.members) {
       if (member.uid === uid) continue
@@ -82,7 +92,12 @@ export function passNotes(prev: GroupSnapshot, next: GroupSnapshot, uid: string)
       const before = prev.plays[member.uid]?.best
       const wasAhead = before != null && ahead(game?.direction, before, mine)
       const nowAhead = ahead(game?.direction, after, mine)
-      if (!wasAhead && nowAhead) notes.push(`${member.displayName} te superó en ${game?.name ?? 'la ronda'}`)
+      if (!wasAhead && nowAhead) {
+        notes.push({
+          key: `pass_${next.group.id}_${next.round.id}_${member.uid}`,
+          text: `${member.displayName} te superó en ${game?.name ?? 'la ronda'}`,
+        })
+      }
     }
   }
   const myPoints = next.members.find((m) => m.uid === uid)?.seasonPoints
@@ -92,7 +107,10 @@ export function passNotes(prev: GroupSnapshot, next: GroupSnapshot, uid: string)
     if (member.uid === uid) continue
     const before = prev.members.find((m) => m.uid === member.uid)?.seasonPoints ?? 0
     if (before <= prevPoints && member.seasonPoints > myPoints) {
-      notes.push(`${member.displayName} te pasó en la temporada`)
+      notes.push({
+        key: `season_${next.group.id}_${member.uid}`,
+        text: `${member.displayName} te pasó en la temporada`,
+      })
     }
   }
   return notes

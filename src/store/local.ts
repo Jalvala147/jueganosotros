@@ -144,6 +144,16 @@ export const localStore: StoreAPI = {
     })
   },
 
+  async markAlert(uid, key) {
+    const safe = key.replace(/[^a-zA-Z0-9_]/g, '_')
+    mutate((db) => {
+      const user = db.users[uid]
+      if (!user) return
+      user.sentAlerts ??= {}
+      user.sentAlerts[safe] = true
+    })
+  },
+
   watchMyGroups(uid, cb) {
     const emit = () => {
       const db = load()

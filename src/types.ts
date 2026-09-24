@@ -35,6 +35,7 @@ export type UserProfile = {
   email: string | null
   createdAt: number
   groupIds: string[]
+  sentAlerts?: Record<string, boolean>
 }
 
 export type GroupSettings = {

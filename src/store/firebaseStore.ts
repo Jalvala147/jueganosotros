@@ -176,13 +176,21 @@ export const firebaseStore: StoreAPI = {
   },
 
   async updatePhoto(uid, url) {
-    const { db } = getFirebase()
     const userSnap = await getDoc(userRef(uid))
     const groupIds = (userSnap.data() as UserProfile | undefined)?.groupIds ?? []
-    const batch = writeBatch(db)
-    batch.update(userRef(uid), { customPhotoURL: url })
-    for (const gid of groupIds) batch.update(memberRef(gid, uid), { customPhotoURL: url })
-    await batch.commit()
+    await updateDoc(userRef(uid), { customPhotoURL: url })
+    await Promise.all(
+      groupIds.map(async (gid) => {
+        const memberSnap = await getDoc(memberRef(gid, uid))
+        if (!memberSnap.exists()) return
+        await updateDoc(memberRef(gid, uid), { customPhotoURL: url })
+      }),
+    )
+  },
+
+  async markAlert(uid, key) {
+    const safe = key.replace(/[^a-zA-Z0-9_]/g, '_')
+    await updateDoc(userRef(uid), { [`sentAlerts.${safe}`]: true })
   },
 
   watchMyGroups(uid, cb) {

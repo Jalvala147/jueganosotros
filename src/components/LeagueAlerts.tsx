@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { findGame } from '../games/catalog'
 import { aheadNotes, alertsOn, enableAlerts, iosNeedsHomeScreen, passNotes, ping } from '../lib/alerts'
 import { getStore } from '../store'
@@ -9,45 +9,56 @@ export function LeagueAlerts({ uid }: { uid: string }) {
   const [on, setOn] = useState(alertsOn)
   const [hint, setHint] = useState<string | null>(iosNeedsHomeScreen() ? 'En iPhone, agrega la app a la pantalla de inicio para recibir avisos.' : null)
 
+  const sent = useRef(new Set<string>())
+
   useEffect(() => getStore().watchMyGroups(uid, setGroups), [uid])
+
+  useEffect(
+    () =>
+      getStore().watchProfile(uid, (profile) => {
+        for (const key of Object.keys(profile?.sentAlerts ?? {})) sent.current.add(key)
+      }),
+    [uid],
+  )
 
   useEffect(() => {
     if (!on) return
+    const claim = (key: string) => {
+      const safe = key.replace(/[^a-zA-Z0-9_]/g, '_')
+      if (sent.current.has(safe)) return false
+      sent.current.add(safe)
+      void getStore().markAlert(uid, safe)
+      return true
+    }
     const list = groups
     const stops = list.map((group) => {
-      const chatKey = `jn.alert.chat.${group.id}`
+      let chatReady = false
       const stopChat = getStore().watchMessages(group.id, (messages) => {
-        const cursor = localStorage.getItem(chatKey)
-        if (!cursor) {
-          const last = messages.at(-1)
-          if (last) localStorage.setItem(chatKey, last.id)
+        if (!chatReady) {
+          chatReady = true
+          for (const message of messages) claim(`chat_${message.id}`)
           return
         }
-        const start = messages.findIndex((message) => message.id === cursor)
-        const fresh = start === -1 ? [] : messages.slice(start + 1)
-        for (const message of fresh) {
-          if (message.uid !== uid) {
-            void ping(group.name, `${message.name}: ${message.text}`, `/grupo/${group.id}`, `chat-${message.id}`)
+        for (const message of messages) {
+          if (message.uid === uid) {
+            claim(`chat_${message.id}`)
+            continue
           }
-          localStorage.setItem(chatKey, message.id)
+          if (!claim(`chat_${message.id}`)) continue
+          void ping(group.name, `${message.name}: ${message.text}`, `/grupo/${group.id}`, `chat-${message.id}`)
         }
       })
       let previous: Parameters<typeof passNotes>[0] | null = null
       const stopGroup = getStore().watchGroup(group.id, (snap, live) => {
         if (!snap || !live) return
-        const roundKey = `jn.alert.round.${group.id}`
-        const passKey = `jn.alert.pass.${group.id}.${snap.round.id}`
-        const told = new Set((localStorage.getItem(passKey) ?? '').split('|').filter(Boolean))
         if (!previous) {
           previous = snap
-          localStorage.setItem(roundKey, snap.round.id)
-          for (const note of aheadNotes(snap, uid)) told.add(note)
-          localStorage.setItem(passKey, [...told].join('|'))
+          claim(`round_${snap.round.id}`)
+          for (const note of aheadNotes(snap, uid)) claim(note.key)
           return
         }
-        if (previous.round.id !== snap.round.id && localStorage.getItem(roundKey) !== snap.round.id) {
+        if (previous.round.id !== snap.round.id && claim(`round_${snap.round.id}`)) {
           const game = findGame(snap.round.gameId)
-          localStorage.setItem(roundKey, snap.round.id)
           void ping(
             group.name,
             `Se avanzó a ${game?.name ?? 'otro juego'}`,
@@ -55,13 +66,12 @@ export function LeagueAlerts({ uid }: { uid: string }) {
             `advance-${snap.round.id}`,
             true,
           )
+          for (const note of aheadNotes(snap, uid)) claim(note.key)
         }
         for (const note of passNotes(previous, snap, uid)) {
-          if (told.has(note)) continue
-          told.add(note)
-          void ping(group.name, note, `/grupo/${group.id}`, `pass-${group.id}`)
+          if (!claim(note.key)) continue
+          void ping(group.name, note.text, `/grupo/${group.id}`, note.key)
         }
-        localStorage.setItem(passKey, [...told].join('|'))
         previous = snap
       })
       return () => {
