@@ -18,6 +18,7 @@ export function Play() {
   const [lastScore, setLastScore] = useState<number | null>(null)
   const [attempt, setAttempt] = useState(0)
   const [error, setError] = useState<string | null>(null)
+  const [saving, setSaving] = useState(false)
 
   useEffect(() => {
     return getStore().watchGroup(groupId, setSnap)
@@ -60,14 +61,27 @@ export function Play() {
     )
   }
 
+  async function stay() {
+    setError(null)
+    try {
+      if (kind === 'official') await getStore().keepTurn(groupId, snap!.round.id, session!.uid)
+      nav(`/grupo/${groupId}`)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'No se guardó')
+    }
+  }
+
   async function finish(score: number) {
     setLastScore(score)
     setPhase('result')
     setError(null)
+    setSaving(true)
     try {
       await getStore().submitPlay(groupId, snap!.round.id, session!.uid, kind, score)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'No se guardó')
+    } finally {
+      setSaving(false)
     }
   }
 
@@ -101,7 +115,7 @@ export function Play() {
         <p className="display text-7xl font-bold leading-none text-pink">{lastScore}</p>
         {error && <p className="text-sm font-black text-pink">{error}</p>}
         <div className="space-y-2">
-          {attempt === 0 && officialLeft > 0 && (
+          {officialLeft > 0 && (
             <button
               className="btn btn-pink w-full"
               onClick={() => {
@@ -113,8 +127,8 @@ export function Play() {
               Intento {attempt + 2}/{totalAttempts}
             </button>
           )}
-          <button className="btn btn-ghost w-full" onClick={() => nav(`/grupo/${groupId}`)}>
-            Volver a la liga
+          <button className="btn btn-ghost w-full" disabled={saving} onClick={() => void stay()}>
+            Me quedo con este
           </button>
         </div>
       </div>
@@ -160,6 +174,11 @@ export function Play() {
       >
         Intento {nextAttempt}/{totalAttempts}
       </button>
+      {(play?.official.length ?? 0) > 0 && (
+        <button className="btn btn-ghost w-full" onClick={() => void stay()}>
+          Me quedo con este
+        </button>
+      )}
     </div>
   )
 }

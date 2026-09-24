@@ -344,16 +344,20 @@ export const firebaseStore: StoreAPI = {
     let gotRounds = false
     let gotPlays = false
     let playRound = ''
+    let liveGroup = false
+    let liveMembers = false
+    let liveRounds = false
+    let livePlays = false
 
     const emit = () => {
       if (!gotGroup || !gotMembers || !gotRounds || !gotPlays) return
       if (!group) {
-        cb(null)
+        cb(null, false)
         return
       }
       const round = rounds.find((r) => r.id === group!.currentRoundId) ?? rounds[0]
       if (!round) {
-        cb(null)
+        cb(null, false)
         return
       }
       const snap: GroupSnapshot = {
@@ -363,7 +367,7 @@ export const firebaseStore: StoreAPI = {
         plays,
         history: rounds.filter((r) => r.status === 'closed').sort((a, b) => b.index - a.index).slice(0, 20),
       }
-      cb(snap)
+      cb(snap, liveGroup && liveMembers && liveRounds && livePlays)
     }
 
     const attachPlays = (roundId: string) => {
@@ -376,6 +380,7 @@ export const firebaseStore: StoreAPI = {
           plays = {}
           for (const d of snap.docs) plays[d.id] = d.data() as PlayRecord
           gotPlays = true
+          livePlays = !snap.metadata.fromCache
           emit()
         },
       )
@@ -383,6 +388,7 @@ export const firebaseStore: StoreAPI = {
 
     const unsubGroup = onSnapshot(groupRef(groupId), (snap) => {
       gotGroup = true
+      liveGroup = !snap.metadata.fromCache
       group = snap.exists() ? (snap.data() as Group) : null
       if (group && group.currentRoundId !== playRound) {
         playRound = group.currentRoundId
@@ -392,11 +398,13 @@ export const firebaseStore: StoreAPI = {
     })
     const unsubMembers = onSnapshot(collection(getFirebase().db, 'groups', groupId, 'members'), (snap) => {
       gotMembers = true
+      liveMembers = !snap.metadata.fromCache
       members = snap.docs.map((d) => d.data() as Member)
       emit()
     })
     const unsubRounds = onSnapshot(collection(getFirebase().db, 'groups', groupId, 'rounds'), (snap) => {
       gotRounds = true
+      liveRounds = !snap.metadata.fromCache
       rounds = snap.docs.map((d) => d.data() as Round)
       emit()
     })
@@ -475,6 +483,21 @@ export const firebaseStore: StoreAPI = {
     return record
   },
 
+  async keepTurn(groupId, roundId, uid) {
+    const { db } = getFirebase()
+    await runTransaction(db, async (tx) => {
+      const rSnap = await tx.get(roundRef(groupId, roundId))
+      if (!rSnap.exists() || (rSnap.data() as Round).status !== 'active') {
+        throw new Error('La ronda ya no está activa')
+      }
+      const pSnap = await tx.get(playRef(groupId, roundId, uid))
+      const prev = pSnap.data() as PlayRecord | undefined
+      if (!prev?.official.length) throw new Error('Todavía no hay una marca')
+      if (prev.finished) return
+      tx.set(playRef(groupId, roundId, uid), { ...prev, finished: true, updatedAt: Date.now() })
+    })
+  },
+
   async voteAdvance(groupId, uid) {
     const { db } = getFirebase()
     let go = false
@@ -490,7 +513,7 @@ export const firebaseStore: StoreAPI = {
       for (const memberId of memberIds) {
         const play = await tx.get(playRef(groupId, round.id, memberId))
         if (!play.exists() || !(play.data() as PlayRecord).finished) {
-          throw new Error('Faltan jugadores por terminar sus dos turnos')
+          throw new Error('Faltan jugadores por terminar su turno')
         }
       }
       const votes = new Set(round.advanceVotes ?? [])

@@ -302,7 +302,7 @@ export const localStore: StoreAPI = {
         plays: db.plays[groupId]?.[round.id] ?? {},
         history: rounds.filter((r) => r.status === 'closed').slice(0, 20),
       }
-      cb(snap)
+      cb(snap, true)
     }
     emit()
     return onChange(emit)
@@ -378,6 +378,17 @@ export const localStore: StoreAPI = {
     return record!
   },
 
+  async keepTurn(groupId, roundId, uid) {
+    mutate((db) => {
+      const round = db.rounds[groupId]?.[roundId]
+      const prev = db.plays[groupId]?.[roundId]?.[uid]
+      if (!round || round.status !== 'active') throw new Error('La ronda ya no está activa')
+      if (!prev?.official.length) throw new Error('Todavía no hay una marca')
+      prev.finished = true
+      prev.updatedAt = Date.now()
+    })
+  },
+
   async voteAdvance(groupId, uid) {
     let go = false
     mutate((db) => {
@@ -387,7 +398,7 @@ export const localStore: StoreAPI = {
       const memberIds = Object.keys(db.members[groupId] ?? {})
       const plays = db.plays[groupId]?.[round.id] ?? {}
       if (!memberIds.length || !memberIds.every((id) => plays[id]?.finished)) {
-        throw new Error('Faltan jugadores por terminar sus dos turnos')
+        throw new Error('Faltan jugadores por terminar su turno')
       }
       const votes = new Set(round.advanceVotes ?? [])
       votes.add(uid)

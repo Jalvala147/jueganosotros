@@ -47,6 +47,28 @@ function ahead(direction: 'higher' | 'lower' | undefined, score: number, mine: n
   return direction === 'lower' ? score < mine : score > mine
 }
 
+export function aheadNotes(snap: GroupSnapshot, uid: string): string[] {
+  const mine = snap.plays[uid]?.best
+  const game = findGame(snap.round.gameId)
+  const notes: string[] = []
+  if (mine != null) {
+    for (const member of snap.members) {
+      if (member.uid === uid) continue
+      const score = snap.plays[member.uid]?.best
+      if (score != null && ahead(game?.direction, score, mine)) {
+        notes.push(`${member.displayName} te superó en ${game?.name ?? 'la ronda'}`)
+      }
+    }
+  }
+  const myPoints = snap.members.find((member) => member.uid === uid)?.seasonPoints
+  if (myPoints == null) return notes
+  for (const member of snap.members) {
+    if (member.uid === uid) continue
+    if (member.seasonPoints > myPoints) notes.push(`${member.displayName} te pasó en la temporada`)
+  }
+  return notes
+}
+
 export function passNotes(prev: GroupSnapshot, next: GroupSnapshot, uid: string): string[] {
   if (prev.round.id !== next.round.id) return []
   const mine = next.plays[uid]?.best ?? prev.plays[uid]?.best

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { findGame } from '../games/catalog'
-import { alertsOn, enableAlerts, iosNeedsHomeScreen, passNotes, ping } from '../lib/alerts'
+import { aheadNotes, alertsOn, enableAlerts, iosNeedsHomeScreen, passNotes, ping } from '../lib/alerts'
 import { getStore } from '../store'
 import type { MyGroup } from '../store/types'
 
@@ -33,12 +33,16 @@ export function LeagueAlerts({ uid }: { uid: string }) {
         }
       })
       let previous: Parameters<typeof passNotes>[0] | null = null
-      const stopGroup = getStore().watchGroup(group.id, (snap) => {
-        if (!snap) return
+      const stopGroup = getStore().watchGroup(group.id, (snap, live) => {
+        if (!snap || !live) return
         const roundKey = `jn.alert.round.${group.id}`
+        const passKey = `jn.alert.pass.${group.id}.${snap.round.id}`
+        const told = new Set((localStorage.getItem(passKey) ?? '').split('|').filter(Boolean))
         if (!previous) {
           previous = snap
           localStorage.setItem(roundKey, snap.round.id)
+          for (const note of aheadNotes(snap, uid)) told.add(note)
+          localStorage.setItem(passKey, [...told].join('|'))
           return
         }
         if (previous.round.id !== snap.round.id && localStorage.getItem(roundKey) !== snap.round.id) {
@@ -52,8 +56,6 @@ export function LeagueAlerts({ uid }: { uid: string }) {
             true,
           )
         }
-        const passKey = `jn.alert.pass.${group.id}.${snap.round.id}`
-        const told = new Set((localStorage.getItem(passKey) ?? '').split('|').filter(Boolean))
         for (const note of passNotes(previous, snap, uid)) {
           if (told.has(note)) continue
           told.add(note)

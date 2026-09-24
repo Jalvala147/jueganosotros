@@ -54,7 +54,7 @@ export type StoreAPI = {
     photoURL: string | null,
     avatar?: AvatarLook | null,
   ): Promise<string>
-  watchGroup(groupId: string, cb: (snap: GroupSnapshot | null) => void): () => void
+  watchGroup(groupId: string, cb: (snap: GroupSnapshot | null, live?: boolean) => void): () => void
   watchMessages(groupId: string, cb: (messages: ChatMessage[]) => void): () => void
   sendMessage(groupId: string, uid: string, name: string, text: string): Promise<void>
   submitPlay(
@@ -64,6 +64,7 @@ export type StoreAPI = {
     kind: 'practice' | 'official',
     score: number,
   ): Promise<PlayRecord>
+  keepTurn(groupId: string, roundId: string, uid: string): Promise<void>
   closeAndAdvance(groupId: string): Promise<void>
   voteAdvance(groupId: string, uid: string): Promise<void>
   newSeason(groupId: string, uid: string): Promise<void>
