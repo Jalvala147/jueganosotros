@@ -4,9 +4,9 @@ import { PIANO_MAX_SPEED, PIANO_START_SPEED, pianoSpeed } from './pianoSpeed'
 describe('velocidad de Teclas', () => {
   it('arranca jugable y a los 140 ya va mucho más rápido', () => {
     expect(pianoSpeed(0)).toBe(PIANO_START_SPEED)
-    expect(pianoSpeed(15)).toBeGreaterThan(pianoSpeed(0) * 2.2)
-    expect(pianoSpeed(40)).toBeGreaterThan(pianoSpeed(0) * 4)
-    expect(pianoSpeed(40)).toBeLessThan(PIANO_MAX_SPEED)
+    expect(pianoSpeed(10) - pianoSpeed(0)).toBeCloseTo(0.104)
+    expect(pianoSpeed(15)).toBeGreaterThan(pianoSpeed(0) * 4)
+    expect(pianoSpeed(20)).toBeLessThan(PIANO_MAX_SPEED)
     expect(pianoSpeed(140)).toBe(PIANO_MAX_SPEED)
     expect(PIANO_MAX_SPEED).toBeGreaterThan(PIANO_START_SPEED * 6)
   })
