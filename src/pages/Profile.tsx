@@ -29,13 +29,16 @@ const FIELDS: { key: keyof AvatarLook; label: string; text: (look: AvatarLook) =
 ]
 
 export function Profile() {
-  const { profile, setNickname, setAvatar, session } = useAuth()
+  const { profile, setNickname, setAvatar, setPhoto, session } = useAuth()
   const [name, setName] = useState(profile?.displayName ?? '')
   const [saved, setSaved] = useState(false)
   const [touched, setTouched] = useState(false)
   const [look, setLook] = useState<AvatarLook>(() => defaultAvatar(hashName(profile?.displayName ?? 'yo')))
   const [lookTouched, setLookTouched] = useState(false)
   const [lookSaved, setLookSaved] = useState(false)
+  const [photoBusy, setPhotoBusy] = useState(false)
+  const [photoError, setPhotoError] = useState('')
+  const [preview, setPreview] = useState<string | null>(null)
 
   useEffect(() => {
     if (!touched && profile?.displayName) setName(profile.displayName)
@@ -45,6 +48,13 @@ export function Profile() {
     if (lookTouched || !profile) return
     setLook(profile.avatar ?? defaultAvatar(hashName(profile.displayName)))
   }, [profile, lookTouched])
+
+  useEffect(() => {
+    if (!preview || preview === profile?.customPhotoURL) return
+    if (!profile?.customPhotoURL) return
+    URL.revokeObjectURL(preview)
+    setPreview(null)
+  }, [profile?.customPhotoURL, preview])
 
   async function save(e: React.FormEvent) {
     e.preventDefault()
@@ -57,6 +67,23 @@ export function Profile() {
     setLookSaved(true)
   }
 
+  async function onPhoto(file: File | undefined) {
+    if (!file) return
+    setPhotoError('')
+    setPhotoBusy(true)
+    const local = URL.createObjectURL(file)
+    setPreview(local)
+    try {
+      await setPhoto(file)
+    } catch {
+      setPhotoError('No se pudo guardar la foto. Usa JPG o PNG.')
+      URL.revokeObjectURL(local)
+      setPreview(null)
+    } finally {
+      setPhotoBusy(false)
+    }
+  }
+
   return (
     <div className="space-y-4">
       <h1 className="display text-center text-4xl font-bold leading-none text-ink">Tu ficha</h1>
@@ -65,8 +92,35 @@ export function Profile() {
       </Link>
       <form onSubmit={(e) => void save(e)} className="card space-y-4 p-5">
         <div className="flex justify-center">
-          <Avatar name={name || '?'} photo={profile?.photoURL} look={look} size={112} ring="#ff4571" />
+          <Avatar
+            name={name || '?'}
+            photo={profile?.photoURL}
+            picture={preview || profile?.customPhotoURL}
+            look={look}
+            size={112}
+            ring="#ff4571"
+          />
         </div>
+        <label className={`btn btn-yellow w-full ${photoBusy ? 'pointer-events-none opacity-60' : ''}`}>
+          {photoBusy ? 'Subiendo…' : 'Subir foto'}
+          <input
+            type="file"
+            accept="image/*"
+            className="sr-only"
+            disabled={photoBusy}
+            onChange={(e) => {
+              const file = e.target.files?.[0]
+              e.target.value = ''
+              void onPhoto(file)
+            }}
+          />
+        </label>
+        {profile?.customPhotoURL && (
+          <button type="button" className="btn w-full bg-white" disabled={photoBusy} onClick={() => void setPhoto(null).then(() => setPreview(null))}>
+            Quitar foto
+          </button>
+        )}
+        {photoError && <p className="text-center text-sm font-black text-pink">{photoError}</p>}
         <p className="text-center text-sm font-black text-ink/50">
           {isLocalMode() ? 'Modo local · este navegador' : `Cuenta ${session?.provider}`}
         </p>

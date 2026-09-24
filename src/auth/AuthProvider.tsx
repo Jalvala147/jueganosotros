@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { getRedirectResult } from 'firebase/auth'
 import { isLocalMode } from '../lib/backend'
+import { blobToDataUrl, compressAvatar } from '../lib/photo'
 import { getFirebase } from '../lib/firebase'
 import { authErrorMessage } from '../store/firebaseStore'
 import { getAuthAPI, getStore, type SessionUser } from '../store'
@@ -16,6 +17,7 @@ type AuthCtx = {
   signOut: () => Promise<void>
   setNickname: (name: string) => Promise<void>
   setAvatar: (look: AvatarLook) => Promise<void>
+  setPhoto: (file: File | null) => Promise<void>
 }
 
 const Ctx = createContext<AuthCtx | null>(null)
@@ -66,6 +68,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setAvatar: async (look) => {
       if (!session) return
       await store.updateAvatar(session.uid, look)
+    },
+    setPhoto: async (file) => {
+      if (!session) return
+      if (!file) {
+        await store.updatePhoto(session.uid, null)
+        return
+      }
+      const blob = await compressAvatar(file)
+      await store.updatePhoto(session.uid, await blobToDataUrl(blob))
     },
   }
 

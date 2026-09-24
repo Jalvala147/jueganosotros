@@ -46,6 +46,7 @@ export function Home() {
         <Avatar
           name={profile?.displayName ?? '?'}
           photo={profile?.photoURL}
+          picture={profile?.customPhotoURL}
           look={profile?.avatar}
           size={64}
           ring="#fff"
@@ -120,6 +121,7 @@ export function Home() {
                     <p className="display truncate text-2xl font-bold">{g.name}</p>
                     <p className="text-sm font-black leading-snug opacity-80">
                       {g.roundsPlayed ?? 0} partidas · {g.wins ?? 0} victorias
+                      {g.liveBest != null ? ` · marca ${g.liveBest}` : ''}
                       {(g.playStreak ?? 0) > 0 ? ` · racha ${g.playStreak}` : ''}
                     </p>
                     <p className="text-[11px] font-black tracking-[0.18em] opacity-60">{g.code}</p>

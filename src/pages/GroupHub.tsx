@@ -5,7 +5,7 @@ import { LeaderCharts } from '../components/Charts'
 import { Streaks } from '../components/Streaks'
 import { GroupChat } from '../components/GroupChat'
 import { Avatar, CodeChip, GameArt, GameGlyph, placeFrame, rankTone } from '../components/ui'
-import { findGame, GAME_MAP } from '../games/catalog'
+import { findGame } from '../games/catalog'
 import { attemptsToBest, changeIsDue, compareMembers, compareScores, eloTier } from '../lib/scoring'
 import { getStore } from '../store'
 import type { GroupSnapshot, Member } from '../types'
@@ -165,7 +165,7 @@ export function GroupHub() {
       {tab === 'temporada' && <SeasonBoard members={table} me={session.uid} />}
       {tab === 'grafica' && <LeaderCharts members={table} me={session.uid} />}
       {tab === 'duelos' && me && <H2H me={me} members={table} />}
-      {tab === 'juegos' && <Kings members={table} />}
+      {tab === 'juegos' && <Kings members={table} history={snap.history} />}
 
       {allPlayed && snap.round.status === 'active' && (
         <section className="card space-y-3 p-4">
@@ -243,7 +243,7 @@ function SeasonBoard({ members, me }: { members: Member[]; me: string }) {
           className={`score-row flex items-center gap-3 px-3 py-3 ${rankTone(i)} ${placeFrame(i + 1)} ${m.uid === me ? meMark : ''}`}
         >
           <PlaceMark place={i + 1} />
-          <Avatar name={m.displayName} photo={m.photoURL} look={m.avatar} size={48} ring="transparent" />
+          <Avatar name={m.displayName} photo={m.photoURL} picture={m.customPhotoURL} look={m.avatar} size={48} ring="transparent" />
           <div className="min-w-0 flex-1">
             <p className="truncate text-xl font-black leading-tight">
               {i === 0 ? '👑 ' : ''}
@@ -312,7 +312,7 @@ function RoundTable({
             }`}
           >
             <PlaceMark place={numeric ? i + 1 : i + 1} muted={!numeric} />
-            <Avatar name={m.displayName} photo={m.photoURL} look={m.avatar} size={48} ring="transparent" />
+            <Avatar name={m.displayName} photo={m.photoURL} picture={m.customPhotoURL} look={m.avatar} size={48} ring="transparent" />
             <div className="min-w-0 flex-1">
               <p className="truncate text-xl font-black leading-tight">
                 {numeric && i === 0 ? '👑 ' : ''}
@@ -356,7 +356,7 @@ function H2H({ me, members }: { me: Member; members: Member[] }) {
         return (
           <div key={o.uid} className="score-row flex items-center justify-between gap-2 bg-mute px-3 py-3 text-white">
             <div className="flex min-w-0 items-center gap-2">
-              <Avatar name={o.displayName} photo={o.photoURL} look={o.avatar} size={38} ring="#4C4660" />
+              <Avatar name={o.displayName} photo={o.photoURL} picture={o.customPhotoURL} look={o.avatar} size={38} ring="#4C4660" />
               <p className="truncate font-black">{o.displayName}</p>
             </div>
             <p className="display shrink-0 text-2xl font-bold leading-none">
@@ -382,7 +382,7 @@ function FaceStack({
     <div className="grid grid-cols-2 gap-2">
       {members.map((m) => (
         <div key={m.uid} className="flex min-w-0 items-center gap-2 rounded-2xl border-[3px] border-ink bg-white px-2 py-2">
-          <Avatar name={m.displayName} photo={m.photoURL} look={m.avatar} size={40} ring="#fff" />
+          <Avatar name={m.displayName} photo={m.photoURL} picture={m.customPhotoURL} look={m.avatar} size={40} ring="#fff" />
           <div className="min-w-0">
             <p className="truncate font-black leading-tight text-ink">{m.displayName}</p>
             <p className="text-xs font-extrabold text-ink/50">{plays[m.uid]?.finished ? 'Listo' : 'En la liga'}</p>
@@ -393,18 +393,33 @@ function FaceStack({
   )
 }
 
-function Kings({ members }: { members: Member[] }) {
+function Kings({ members, history }: { members: Member[]; history: GroupSnapshot['history'] }) {
+  const wonBefore = members.flatMap((member) =>
+    Object.keys(member.gameWins).filter((id) => (member.gameWins[id] ?? 0) > 0),
+  )
+  const played = [...new Set([...history.map((round) => round.gameId), ...wonBefore])]
+  if (!played.length) {
+    return (
+      <p className="card p-4 text-sm font-extrabold leading-relaxed text-ink/70">
+        Cuando cierren una ronda, aquí aparece el ganador de ese juego.
+      </p>
+    )
+  }
   return (
     <div className="grid grid-cols-2 gap-2">
-      {Object.values(GAME_MAP).map((g) => {
-        const king = [...members].sort((a, b) => (b.gameWins[g.id] ?? 0) - (a.gameWins[g.id] ?? 0))[0]
-        const wins = king ? (king.gameWins[g.id] ?? 0) : 0
+      {played.map((id) => {
+        const game = findGame(id)
+        const king = [...members].sort((a, b) => (b.gameWins[id] ?? 0) - (a.gameWins[id] ?? 0))[0]
+        const wins = king ? (king.gameWins[id] ?? 0) : 0
+        const latestWinner = history.find((round) => round.gameId === id)?.results?.find((row) => row.rank === 1)
+        const name = members.find((member) => member.uid === latestWinner?.uid)?.displayName ?? (wins ? king?.displayName : null)
+        if (!game) return null
         return (
-          <div key={g.id} className="card p-3">
-            <GameGlyph game={g} size={48} />
-            <p className="display mt-2 truncate font-bold leading-none">{g.name}</p>
-            <p className="mt-1 truncate text-xs font-extrabold text-ink/55">
-              {wins ? `${king!.displayName} · ${wins}` : 'sin rey'}
+          <div key={id} className="card p-3">
+            <GameGlyph game={game} size={48} />
+            <p className="display mt-2 truncate font-bold leading-none">{game.name}</p>
+            <p className="mt-1 truncate text-sm font-extrabold text-ink/70">
+              {name ? `👑 ${name}${wins ? ` · ${wins}` : ''}` : 'Sin ganador'}
             </p>
           </div>
         )

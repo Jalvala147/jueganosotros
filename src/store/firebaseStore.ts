@@ -175,6 +175,16 @@ export const firebaseStore: StoreAPI = {
     await batch.commit()
   },
 
+  async updatePhoto(uid, url) {
+    const { db } = getFirebase()
+    const userSnap = await getDoc(userRef(uid))
+    const groupIds = (userSnap.data() as UserProfile | undefined)?.groupIds ?? []
+    const batch = writeBatch(db)
+    batch.update(userRef(uid), { customPhotoURL: url })
+    for (const gid of groupIds) batch.update(memberRef(gid, uid), { customPhotoURL: url })
+    await batch.commit()
+  },
+
   watchMyGroups(uid, cb) {
     return onSnapshot(userRef(uid), async (snap) => {
       const ids = (snap.data() as UserProfile | undefined)?.groupIds ?? []
@@ -192,20 +202,25 @@ export const firebaseStore: StoreAPI = {
             const roundSnap = data.currentRoundId
               ? await getDoc(roundRef(id, data.currentRoundId))
               : null
+            const round = roundSnap?.data() as Round | undefined
+            const liveSnap = round?.status === 'active' ? await getDoc(playRef(id, round.id, uid)) : null
+            const live = liveSnap?.data() as PlayRecord | undefined
             const card: MyGroup = {
               id: data.id,
               name: data.name,
               code: data.code,
               seasonPoints: mine?.seasonPoints,
               wins: mine?.wins,
-              roundsPlayed: mine?.roundsPlayed,
+              roundsPlayed: (mine?.roundsPlayed ?? 0) + (live && (live.finished || live.official.length > 0) ? 1 : 0),
+              liveBest: live?.best ?? null,
               playStreak: mine?.playStreak,
               rank: me >= 0 ? me + 1 : members.length,
-              gameId: (roundSnap?.data() as Round | undefined)?.gameId,
+              gameId: round?.gameId,
               members: members.slice(0, 8).map((member) => ({
                 uid: member.uid,
                 name: member.displayName,
                 photo: member.photoURL,
+                picture: member.customPhotoURL ?? null,
                 look: member.avatar ?? null,
               })),
             }
@@ -225,14 +240,20 @@ export const firebaseStore: StoreAPI = {
           ids.map(async (id) => {
             const g = await getDoc(groupRef(id))
             if (!g.exists()) return null
-            const [membersSnap, roundsSnap] = await Promise.all([
+            const group = g.data() as Group
+            const [membersSnap, roundsSnap, roundSnap] = await Promise.all([
               getDocs(collection(getFirebase().db, 'groups', id, 'members')),
               getDocs(collection(getFirebase().db, 'groups', id, 'rounds')),
+              group.currentRoundId ? getDoc(roundRef(id, group.currentRoundId)) : Promise.resolve(null),
             ])
+            const round = roundSnap?.data() as Round | undefined
+            const liveSnap = round?.status === 'active' ? await getDoc(playRef(id, round.id, uid)) : null
+            const live = liveSnap?.data() as PlayRecord | undefined
             return {
-              group: g.data() as Group,
+              group,
               members: membersSnap.docs.map((d) => d.data() as Member),
               rounds: roundsSnap.docs.map((d) => d.data() as Round),
+              openFinished: Boolean(live && (live.finished || live.official.length > 0)),
             }
           }),
         )
@@ -267,7 +288,9 @@ export const firebaseStore: StoreAPI = {
       const profile = user.data() as UserProfile
       tx.set(codeRef(code), { groupId: id })
       tx.set(groupRef(id), group)
-      tx.set(memberRef(id, uid), emptyMember(uid, displayName, photoURL, avatar ?? profile?.avatar ?? null))
+      const member = emptyMember(uid, displayName, photoURL, avatar ?? profile?.avatar ?? null)
+      member.customPhotoURL = profile?.customPhotoURL ?? null
+      tx.set(memberRef(id, uid), member)
       tx.set(roundRef(id, round.id), round)
       tx.set(userRef(uid), { groupIds: [...(profile.groupIds ?? []), id] }, { merge: true })
     })
@@ -287,7 +310,9 @@ export const firebaseStore: StoreAPI = {
       const profile = user.data() as UserProfile
       const already = await tx.get(memberRef(groupId, uid))
       if (!already.exists()) {
-        tx.set(memberRef(groupId, uid), emptyMember(uid, displayName, photoURL, avatar ?? profile?.avatar ?? null))
+        const member = emptyMember(uid, displayName, photoURL, avatar ?? profile?.avatar ?? null)
+        member.customPhotoURL = profile?.customPhotoURL ?? null
+        tx.set(memberRef(groupId, uid), member)
       }
       const ids = new Set(profile.groupIds ?? [])
       ids.add(groupId)

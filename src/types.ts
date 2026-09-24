@@ -30,6 +30,7 @@ export type UserProfile = {
   uid: string
   displayName: string
   photoURL: string | null
+  customPhotoURL?: string | null
   avatar: AvatarLook | null
   email: string | null
   createdAt: number
@@ -64,6 +65,7 @@ export type Member = {
   uid: string
   displayName: string
   photoURL: string | null
+  customPhotoURL?: string | null
   avatar: AvatarLook | null
   joinedAt: number
   seasonPoints: number

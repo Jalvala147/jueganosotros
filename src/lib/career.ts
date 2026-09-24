@@ -45,7 +45,7 @@ export function betterScore(gameId: string, next: number, current: number): bool
 
 export function buildCareer(
   uid: string,
-  packs: { group: Group; members: Member[]; rounds: Round[] }[],
+  packs: { group: Group; members: Member[]; rounds: Round[]; openFinished?: boolean }[],
 ): Career {
   const career = emptyCareer()
   const rivals = new Set<string>()
@@ -54,7 +54,7 @@ export function buildCareer(
   for (const pack of packs) {
     const me = pack.members.find((m) => m.uid === uid)
     if (!me) continue
-    career.roundsPlayed += me.roundsPlayed
+    career.roundsPlayed += me.roundsPlayed + (pack.openFinished ? 1 : 0)
     career.wins += me.wins
     career.playStreak = Math.max(career.playStreak, me.playStreak)
     for (const [gameId, wins] of Object.entries(me.gameWins)) {

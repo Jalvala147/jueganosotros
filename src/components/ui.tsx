@@ -6,17 +6,22 @@ import type { GameMeta } from '../types'
 export function Avatar({
   name,
   photo,
+  picture,
   look,
   size = 44,
   ring = '#fff',
 }: {
   name: string
   photo?: string | null
+  picture?: string | null
   look?: AvatarLook | null
   size?: number
   ring?: string
 }) {
   const style = { width: size, height: size, boxShadow: ring !== 'transparent' ? `0 0 0 3px ${ring}` : undefined }
+  if (picture) {
+    return <img src={picture} alt="" className="shrink-0 rounded-full object-cover" style={style} />
+  }
   if (look) {
     return <AvatarFace look={look} size={size} ring={ring} />
   }
@@ -31,7 +36,7 @@ export function FaceRow({
   ring = '#fff',
   max = 5,
 }: {
-  people: { uid?: string; name: string; photo?: string | null; look?: AvatarLook | null }[]
+  people: { uid?: string; name: string; photo?: string | null; picture?: string | null; look?: AvatarLook | null }[]
   ring?: string
   max?: number
 }) {
@@ -41,7 +46,7 @@ export function FaceRow({
     <div className="flex min-w-0 items-center">
       <div className="flex -space-x-2">
         {shown.map((p, i) => (
-          <Avatar key={p.uid ?? `${p.name}-${i}`} name={p.name} photo={p.photo} look={p.look} size={36} ring={ring} />
+          <Avatar key={p.uid ?? `${p.name}-${i}`} name={p.name} photo={p.photo} picture={p.picture} look={p.look} size={36} ring={ring} />
         ))}
       </div>
       {extra > 0 && <span className="ml-1.5 shrink-0 text-xs font-black">+{extra}</span>}

@@ -25,9 +25,10 @@ export type MyGroup = {
   wins?: number
   roundsPlayed?: number
   playStreak?: number
+  liveBest?: number | null
   rank: number
   gameId?: GameId
-  members: { uid: string; name: string; photo: string | null; look: AvatarLook | null }[]
+  members: { uid: string; name: string; photo: string | null; picture?: string | null; look: AvatarLook | null }[]
 }
 
 export type StoreAPI = {
@@ -35,6 +36,7 @@ export type StoreAPI = {
   watchProfile(uid: string, cb: (profile: UserProfile | null) => void): () => void
   updateNickname(uid: string, name: string): Promise<void>
   updateAvatar(uid: string, look: AvatarLook): Promise<void>
+  updatePhoto(uid: string, url: string | null): Promise<void>
   watchMyGroups(uid: string, cb: (groups: MyGroup[]) => void): () => void
   watchCareer(uid: string, cb: (career: Career) => void): () => void
   createGroup(

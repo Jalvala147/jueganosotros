@@ -17,6 +17,7 @@ export function Layout() {
               <Avatar
                 name={profile?.displayName ?? '?'}
                 photo={profile?.photoURL}
+                picture={profile?.customPhotoURL}
                 look={profile?.avatar}
                 size={44}
                 ring="#ff4571"

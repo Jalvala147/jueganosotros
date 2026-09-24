@@ -134,6 +134,16 @@ export const localStore: StoreAPI = {
     })
   },
 
+  async updatePhoto(uid, url) {
+    mutate((db) => {
+      if (db.users[uid]) db.users[uid]!.customPhotoURL = url
+      for (const gid of db.users[uid]?.groupIds ?? []) {
+        const member = db.members[gid]?.[uid]
+        if (member) member.customPhotoURL = url
+      }
+    })
+  },
+
   watchMyGroups(uid, cb) {
     const emit = () => {
       const db = load()
@@ -145,13 +155,15 @@ export const localStore: StoreAPI = {
           const me = members.findIndex((m) => m.uid === uid)
           const mine = db.members[g!.id]?.[uid]
           const round = db.rounds[g!.id]?.[g!.currentRoundId]
+          const live = round?.status === 'active' ? db.plays[g!.id]?.[round.id]?.[uid] : undefined
           const card: MyGroup = {
             id: g!.id,
             name: g!.name,
             code: g!.code,
             seasonPoints: mine?.seasonPoints,
             wins: mine?.wins,
-            roundsPlayed: mine?.roundsPlayed,
+            roundsPlayed: (mine?.roundsPlayed ?? 0) + (live && (live.finished || live.official.length > 0) ? 1 : 0),
+            liveBest: live?.best ?? null,
             playStreak: mine?.playStreak,
             rank: me >= 0 ? me + 1 : members.length,
             gameId: round?.gameId,
@@ -159,6 +171,7 @@ export const localStore: StoreAPI = {
               uid: m.uid,
               name: m.displayName,
               photo: m.photoURL,
+              picture: m.customPhotoURL ?? null,
               look: m.avatar ?? null,
             })),
           }
@@ -177,11 +190,16 @@ export const localStore: StoreAPI = {
       const packs = ids
         .map((id) => db.groups[id])
         .filter((g): g is NonNullable<typeof g> => Boolean(g))
-        .map((group) => ({
-          group,
-          members: Object.values(db.members[group.id] ?? {}),
-          rounds: Object.values(db.rounds[group.id] ?? {}),
-        }))
+        .map((group) => {
+          const round = db.rounds[group.id]?.[group.currentRoundId]
+          const live = round?.status === 'active' ? db.plays[group.id]?.[round.id]?.[uid] : undefined
+          return {
+            group,
+            members: Object.values(db.members[group.id] ?? {}),
+            rounds: Object.values(db.rounds[group.id] ?? {}),
+            openFinished: Boolean(live && (live.finished || live.official.length > 0)),
+          }
+        })
       cb(buildCareer(uid, packs))
     }
     emit()
@@ -209,7 +227,9 @@ export const localStore: StoreAPI = {
       const round = firstRound(id, gameId, seed, group.settings.timeoutHours)
       db.groups[id] = group
       db.codes[code] = id
-      db.members[id] = { [uid]: emptyMember(uid, displayName, photoURL, avatar ?? db.users[uid]?.avatar ?? null) }
+      const created = emptyMember(uid, displayName, photoURL, avatar ?? db.users[uid]?.avatar ?? null)
+      created.customPhotoURL = db.users[uid]?.customPhotoURL ?? null
+      db.members[id] = { [uid]: created }
       db.rounds[id] = { [round.id]: round }
       db.plays[id] = { [round.id]: {} }
       db.users[uid] ??= {
@@ -235,7 +255,9 @@ export const localStore: StoreAPI = {
       groupId = id
       db.members[id] ??= {}
       const look = avatar ?? db.users[uid]?.avatar ?? null
-      db.members[id]![uid] ??= emptyMember(uid, displayName, photoURL, look)
+      const joined = emptyMember(uid, displayName, photoURL, look)
+      joined.customPhotoURL = db.users[uid]?.customPhotoURL ?? null
+      db.members[id]![uid] ??= joined
       db.users[uid] ??= {
         uid,
         displayName,
