@@ -1,8 +1,8 @@
-/** Tiles advanced per ~16.67ms frame. */
-export const PIANO_START_SPEED = 0.038
-export const PIANO_HIT_BOOST = 0.0027
-export const PIANO_TIME_BOOST = 0.0015
-export const PIANO_MAX_SPEED = 0.136
+/** Tiles advanced per ~16.67ms frame. ~60× these values is tiles per second. */
+export const PIANO_START_SPEED = 0.04
+export const PIANO_HIT_BOOST = 0.0052
+export const PIANO_TIME_BOOST = 0.003
+export const PIANO_MAX_SPEED = 0.3
 
 export function pianoSpeed(hits: number, elapsedMs = 0): number {
   const fromHits = Math.max(0, hits) * PIANO_HIT_BOOST
