@@ -1,3 +1,4 @@
+import { mulberry32, shuffle } from '../lib/rng'
 import type { GameId, GameMeta } from '../types'
 
 export const GAMES: GameMeta[] = [
@@ -35,4 +36,24 @@ export function nextGameId(previous: GameId | null, seed: number): GameId {
   if (!previous || !ids.includes(previous)) return ids[Math.abs(seed) % ids.length]!
   const idx = ids.indexOf(previous)
   return ids[(idx + 1 + (seed % (ids.length - 1))) % ids.length]!
+}
+
+export function leagueOrder(seed: number): GameId[] {
+  return shuffle(mulberry32(seed >>> 0), GAMES.map((game) => game.id))
+}
+
+export function startOrder(seed: number, busy: string[]): GameId[] {
+  const order = leagueOrder(seed)
+  const taken = new Set(busy)
+  const start = order.findIndex((id) => !taken.has(id))
+  if (start <= 0) return order
+  return [...order.slice(start), ...order.slice(0, start)]
+}
+
+export function nextInOrder(order: GameId[], previous: GameId | null): GameId {
+  if (!order.length) return GAMES[0]!.id
+  if (!previous) return order[0]!
+  const idx = order.indexOf(previous)
+  if (idx < 0) return order[0]!
+  return order[(idx + 1) % order.length]!
 }

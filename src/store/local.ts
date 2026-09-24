@@ -1,6 +1,6 @@
 import { makeGroupCode, normalizeCode } from '../lib/codes'
 import { makeId } from '../lib/ids'
-import { findGame, nextGameId } from '../games/catalog'
+import { findGame, nextGameId, nextInOrder, startOrder } from '../games/catalog'
 import { buildCareer } from '../lib/career'
 import { closeRoundScoring, compareMembers, emptyMember, majorityReached, resetSeasonMember } from '../lib/scoring'
 import type { AvatarLook, ChatMessage, Group, GroupSnapshot, Member, PlayRecord, Round, UserProfile } from '../types'
@@ -210,9 +210,15 @@ export const localStore: StoreAPI = {
     const id = makeId('g')
     const code = makeGroupCode()
     const seed = (crypto.getRandomValues(new Uint32Array(1))[0] ?? Date.now()) >>> 0
-    const gameId = nextGameId(null, seed)
     mutate((db) => {
       if (db.codes[code]) throw new Error('Código repetido, inténtalo otra vez')
+      const busy = (db.users[uid]?.groupIds ?? []).flatMap((gid) => {
+        const other = db.groups[gid]
+        const playing = other ? db.rounds[gid]?.[other.currentRoundId]?.gameId : undefined
+        return playing ? [playing] : []
+      })
+      const order = startOrder(seed, busy)
+      const gameId = order[0]!
       const group: Group = {
         id,
         name: name.trim().slice(0, 32) || 'Mi grupo',
@@ -223,6 +229,7 @@ export const localStore: StoreAPI = {
         currentRoundId: `r_${seed.toString(16)}`,
         memberIds: [uid],
         settings: { ...defaultSettings(), changeMinutes },
+        gameOrder: order,
       }
       const round = firstRound(id, gameId, seed, group.settings.timeoutHours)
       db.groups[id] = group
@@ -410,7 +417,7 @@ export const localStore: StoreAPI = {
       db.members[groupId] = Object.fromEntries(next.map((m) => [m.uid, m]))
 
       const seed = (round.seed * 1664525 + 1013904223) >>> 0
-      const gameId = nextGameId(round.gameId, seed)
+      const gameId = group.gameOrder?.length ? nextInOrder(group.gameOrder, round.gameId) : nextGameId(round.gameId, seed)
       const nextRound = firstRound(groupId, gameId, seed, group.settings.timeoutHours)
       nextRound.index = round.index + 1
       db.rounds[groupId]![nextRound.id] = nextRound

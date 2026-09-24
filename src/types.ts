@@ -54,6 +54,7 @@ export type Group = {
   currentRoundId: string
   memberIds: string[]
   settings: GroupSettings
+  gameOrder?: GameId[]
 }
 
 export type HeadToHead = {

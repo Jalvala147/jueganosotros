@@ -21,7 +21,7 @@ import {
 } from 'firebase/firestore'
 import { makeGroupCode, normalizeCode } from '../lib/codes'
 import { makeId } from '../lib/ids'
-import { findGame, nextGameId } from '../games/catalog'
+import { findGame, nextGameId, nextInOrder, startOrder } from '../games/catalog'
 import { getFirebase } from '../lib/firebase'
 import { buildCareer } from '../lib/career'
 import { closeRoundScoring, compareMembers, emptyMember, majorityReached, resetSeasonMember } from '../lib/scoring'
@@ -267,9 +267,8 @@ export const firebaseStore: StoreAPI = {
     const id = doc(collection(db, 'groups')).id
     const code = makeGroupCode()
     const seed = (crypto.getRandomValues(new Uint32Array(1))[0] ?? Date.now()) >>> 0
-    const gameId = nextGameId(null, seed)
     const settings = { ...defaultSettings(), changeMinutes }
-    const round = firstRound(id, gameId, seed, settings.timeoutHours)
+    const round = firstRound(id, nextGameId(null, seed), seed, settings.timeoutHours)
     const group: Group = {
       id,
       name: name.trim().slice(0, 32) || 'Mi grupo',
@@ -286,6 +285,18 @@ export const firebaseStore: StoreAPI = {
       if (taken.exists()) throw new Error('Código repetido, inténtalo otra vez')
       const user = await tx.get(userRef(uid))
       const profile = user.data() as UserProfile
+      const busy: string[] = []
+      for (const gid of profile.groupIds ?? []) {
+        const other = await tx.get(groupRef(gid))
+        if (!other.exists()) continue
+        const currentId = (other.data() as Group).currentRoundId
+        const current = await tx.get(roundRef(gid, currentId))
+        const playing = (current.data() as Round | undefined)?.gameId
+        if (playing) busy.push(playing)
+      }
+      const order = startOrder(seed, busy)
+      group.gameOrder = order
+      round.gameId = order[0]!
       tx.set(codeRef(code), { groupId: id })
       tx.set(groupRef(id), group)
       const member = emptyMember(uid, displayName, photoURL, avatar ?? profile?.avatar ?? null)
@@ -526,7 +537,9 @@ export const firebaseStore: StoreAPI = {
       for (const m of next) tx.set(memberRef(groupId, m.uid), m)
 
       const seed = (round.seed * 1664525 + 1013904223) >>> 0
-      const gameId = nextGameId(round.gameId as GameId, seed)
+      const gameId = group.gameOrder?.length
+        ? nextInOrder(group.gameOrder, round.gameId as GameId)
+        : nextGameId(round.gameId as GameId, seed)
       const nextRound = firstRound(groupId, gameId, seed, group.settings.timeoutHours)
       nextRound.index = round.index + 1
       tx.set(roundRef(groupId, nextRound.id), nextRound)
