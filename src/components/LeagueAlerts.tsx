@@ -15,32 +15,35 @@ export function LeagueAlerts({ uid }: { uid: string }) {
     if (!on) return
     const list = groups
     const stops = list.map((group) => {
-      const seen = new Set<string>()
-      let primedChat = false
+      const chatKey = `jn.alert.chat.${group.id}`
       const stopChat = getStore().watchMessages(group.id, (messages) => {
-        if (!primedChat) {
-          for (const message of messages) seen.add(message.id)
-          primedChat = true
+        const cursor = localStorage.getItem(chatKey)
+        if (!cursor) {
+          const last = messages.at(-1)
+          if (last) localStorage.setItem(chatKey, last.id)
           return
         }
-        for (const message of messages) {
-          if (seen.has(message.id)) continue
-          seen.add(message.id)
-          if (message.uid === uid) continue
-          void ping(group.name, `${message.name}: ${message.text}`, `/grupo/${group.id}`, `chat-${group.id}`)
+        const start = messages.findIndex((message) => message.id === cursor)
+        const fresh = start === -1 ? [] : messages.slice(start + 1)
+        for (const message of fresh) {
+          if (message.uid !== uid) {
+            void ping(group.name, `${message.name}: ${message.text}`, `/grupo/${group.id}`, `chat-${message.id}`)
+          }
+          localStorage.setItem(chatKey, message.id)
         }
       })
-      let primed = false
       let previous: Parameters<typeof passNotes>[0] | null = null
       const stopGroup = getStore().watchGroup(group.id, (snap) => {
         if (!snap) return
-        if (!primed || !previous) {
-          primed = true
+        const roundKey = `jn.alert.round.${group.id}`
+        if (!previous) {
           previous = snap
+          localStorage.setItem(roundKey, snap.round.id)
           return
         }
-        if (previous.round.id !== snap.round.id) {
+        if (previous.round.id !== snap.round.id && localStorage.getItem(roundKey) !== snap.round.id) {
           const game = findGame(snap.round.gameId)
+          localStorage.setItem(roundKey, snap.round.id)
           void ping(
             group.name,
             `Se avanzó a ${game?.name ?? 'otro juego'}`,
@@ -49,9 +52,14 @@ export function LeagueAlerts({ uid }: { uid: string }) {
             true,
           )
         }
+        const passKey = `jn.alert.pass.${group.id}.${snap.round.id}`
+        const told = new Set((localStorage.getItem(passKey) ?? '').split('|').filter(Boolean))
         for (const note of passNotes(previous, snap, uid)) {
+          if (told.has(note)) continue
+          told.add(note)
           void ping(group.name, note, `/grupo/${group.id}`, `pass-${group.id}`)
         }
+        localStorage.setItem(passKey, [...told].join('|'))
         previous = snap
       })
       return () => {

@@ -328,8 +328,14 @@ export const firebaseStore: StoreAPI = {
     let rounds: Round[] = []
     let plays: Record<string, PlayRecord> = {}
     let unsubPlays: (() => void) | null = null
+    let gotGroup = false
+    let gotMembers = false
+    let gotRounds = false
+    let gotPlays = false
+    let playRound = ''
 
     const emit = () => {
+      if (!gotGroup || !gotMembers || !gotRounds || !gotPlays) return
       if (!group) {
         cb(null)
         return
@@ -351,26 +357,35 @@ export const firebaseStore: StoreAPI = {
 
     const attachPlays = (roundId: string) => {
       unsubPlays?.()
+      gotPlays = false
+      plays = {}
       unsubPlays = onSnapshot(
         collection(getFirebase().db, 'groups', groupId, 'rounds', roundId, 'plays'),
         (snap) => {
           plays = {}
           for (const d of snap.docs) plays[d.id] = d.data() as PlayRecord
+          gotPlays = true
           emit()
         },
       )
     }
 
     const unsubGroup = onSnapshot(groupRef(groupId), (snap) => {
+      gotGroup = true
       group = snap.exists() ? (snap.data() as Group) : null
-      if (group) attachPlays(group.currentRoundId)
+      if (group && group.currentRoundId !== playRound) {
+        playRound = group.currentRoundId
+        attachPlays(group.currentRoundId)
+      } else if (!group) gotPlays = true
       emit()
     })
     const unsubMembers = onSnapshot(collection(getFirebase().db, 'groups', groupId, 'members'), (snap) => {
+      gotMembers = true
       members = snap.docs.map((d) => d.data() as Member)
       emit()
     })
     const unsubRounds = onSnapshot(collection(getFirebase().db, 'groups', groupId, 'rounds'), (snap) => {
+      gotRounds = true
       rounds = snap.docs.map((d) => d.data() as Round)
       emit()
     })
