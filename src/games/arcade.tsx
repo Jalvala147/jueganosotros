@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { mulberry32, randInt } from '../lib/rng'
 import { GameFrame, Overlay, useCanvas, useCountdown, type GameProps } from './kit'
+import { pianoSpeed } from './pianoSpeed'
 
 export function Whack({ seed, onFinish }: GameProps) {
   const left = useCountdown()
@@ -627,12 +628,12 @@ export function Piano({ seed, onFinish }: GameProps) {
     }
     let scroll = 2.2
     let nextIndex = 0
-    let speed = 0.015
     let points = 0
     let dead = false
     let endAt = 0
+    const startedAt = performance.now()
     const hit = new Set<number>()
-    let last = performance.now()
+    let last = startedAt
     const tap = (e: PointerEvent) => {
       e.preventDefault()
       if (dead) return
@@ -656,7 +657,6 @@ export function Piano({ seed, onFinish }: GameProps) {
       nextIndex += 1
       points += 1
       setScore(points)
-      speed = Math.min(0.032, speed + 0.00045)
     }
     c.addEventListener('pointerdown', tap)
     let raf = 0
@@ -669,7 +669,7 @@ export function Piano({ seed, onFinish }: GameProps) {
         raf = requestAnimationFrame(loop)
         return
       }
-      if (!dead) scroll += speed * dt
+      if (!dead) scroll += pianoSpeed(points, now - startedAt) * dt
       const tileH = h / 4.15
       const needTop = h - (scroll - nextIndex) * tileH
       if (!dead && needTop + tileH < 0) dead = true
