@@ -157,6 +157,7 @@ export const firebaseStore: StoreAPI = {
             const membersSnap = await getDocs(collection(getFirebase().db, 'groups', id, 'members'))
             const members = membersSnap.docs.map((d) => d.data() as Member).sort(compareMembers)
             const me = members.findIndex((member) => member.uid === uid)
+            const mine = m.data() as Member | undefined
             const roundSnap = data.currentRoundId
               ? await getDoc(roundRef(id, data.currentRoundId))
               : null
@@ -164,7 +165,10 @@ export const firebaseStore: StoreAPI = {
               id: data.id,
               name: data.name,
               code: data.code,
-              seasonPoints: (m.data() as Member | undefined)?.seasonPoints,
+              seasonPoints: mine?.seasonPoints,
+              wins: mine?.wins,
+              roundsPlayed: mine?.roundsPlayed,
+              playStreak: mine?.playStreak,
               rank: me >= 0 ? me + 1 : members.length,
               gameId: (roundSnap?.data() as Round | undefined)?.gameId,
               members: members.slice(0, 8).map((member) => ({

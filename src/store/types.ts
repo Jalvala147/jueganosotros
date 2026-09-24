@@ -22,6 +22,9 @@ export type MyGroup = {
   name: string
   code: string
   seasonPoints?: number
+  wins?: number
+  roundsPlayed?: number
+  playStreak?: number
   rank: number
   gameId?: GameId
   members: { uid: string; name: string; photo: string | null; look: AvatarLook | null }[]

@@ -29,6 +29,13 @@ export function Home() {
     return getStore().watchCareer(session.uid, setCareer)
   }, [session])
 
+  const leagueLine =
+    groups.length === 1
+      ? `En ${groups[0]!.name}`
+      : groups.length > 1
+        ? `Suma de ${groups.map((g) => g.name).join(', ')}`
+        : null
+
   return (
     <div className="space-y-5">
       <div className="flex items-center justify-between gap-3">
@@ -60,6 +67,9 @@ export function Home() {
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0">
             <p className="text-[11px] font-black uppercase tracking-[0.18em] text-ink/45">Tu vitrina</p>
+            {leagueLine && (
+              <p className="text-sm font-black leading-snug break-words text-ink/70">{leagueLine}</p>
+            )}
             <p className="display text-2xl font-bold leading-none">
               {career.playStreak > 0 ? `Racha · día ${career.playStreak}` : 'Racha, marcas y juegos'}
             </p>
@@ -108,6 +118,10 @@ export function Home() {
                 <div className="mt-3 flex items-end justify-between gap-3">
                   <div className="min-w-0">
                     <p className="display truncate text-2xl font-bold">{g.name}</p>
+                    <p className="text-sm font-black leading-snug opacity-80">
+                      {g.roundsPlayed ?? 0} partidas · {g.wins ?? 0} victorias
+                      {(g.playStreak ?? 0) > 0 ? ` · racha ${g.playStreak}` : ''}
+                    </p>
                     <p className="text-[11px] font-black tracking-[0.18em] opacity-60">{g.code}</p>
                   </div>
                   <div className="text-right">

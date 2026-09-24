@@ -143,12 +143,16 @@ export const localStore: StoreAPI = {
         .map((g) => {
           const members = Object.values(db.members[g!.id] ?? {}).sort(compareMembers)
           const me = members.findIndex((m) => m.uid === uid)
+          const mine = db.members[g!.id]?.[uid]
           const round = db.rounds[g!.id]?.[g!.currentRoundId]
           const card: MyGroup = {
             id: g!.id,
             name: g!.name,
             code: g!.code,
-            seasonPoints: db.members[g!.id]?.[uid]?.seasonPoints,
+            seasonPoints: mine?.seasonPoints,
+            wins: mine?.wins,
+            roundsPlayed: mine?.roundsPlayed,
+            playStreak: mine?.playStreak,
             rank: me >= 0 ? me + 1 : members.length,
             gameId: round?.gameId,
             members: members.slice(0, 8).map((m) => ({

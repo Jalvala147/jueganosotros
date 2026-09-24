@@ -378,18 +378,17 @@ function FaceStack({
   members: Member[]
   plays: GroupSnapshot['plays']
 }) {
-  const shown = members.slice(0, 6)
-  const extra = members.length - shown.length
   return (
-    <div className="flex items-center">
-      <div className="flex -space-x-2">
-        {shown.map((m) => (
-          <div key={m.uid} className={plays[m.uid]?.finished ? '' : 'opacity-40'}>
-            <Avatar name={m.displayName} photo={m.photoURL} look={m.avatar} size={34} ring="#fff" />
+    <div className="grid grid-cols-2 gap-2">
+      {members.map((m) => (
+        <div key={m.uid} className="flex min-w-0 items-center gap-2 rounded-2xl border-[3px] border-ink bg-white px-2 py-2">
+          <Avatar name={m.displayName} photo={m.photoURL} look={m.avatar} size={40} ring="#fff" />
+          <div className="min-w-0">
+            <p className="truncate font-black leading-tight text-ink">{m.displayName}</p>
+            <p className="text-xs font-extrabold text-ink/50">{plays[m.uid]?.finished ? 'Listo' : 'En la liga'}</p>
           </div>
-        ))}
-      </div>
-      {extra > 0 && <span className="ml-2 text-xs font-black text-ink/60">+{extra}</span>}
+        </div>
+      ))}
     </div>
   )
 }
