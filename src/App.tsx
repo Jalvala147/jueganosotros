@@ -9,6 +9,7 @@ import { JoinGroup } from './pages/JoinGroup'
 import { Login } from './pages/Login'
 import { Play } from './pages/Play'
 import { Profile } from './pages/Profile'
+import { GameLab } from './pages/GameLab'
 import { Showcase } from './pages/Showcase'
 
 function Guard({ children }: { children: React.ReactNode }) {
@@ -37,6 +38,7 @@ export function App() {
         <Route path="unirse" element={<JoinGroup />} />
         <Route path="perfil" element={<Profile />} />
         <Route path="vitrina" element={<Showcase />} />
+        <Route path="probar" element={<GameLab />} />
         <Route path="grupo/:groupId" element={<GroupHub />} />
         <Route path="grupo/:groupId/jugar" element={<Play />} />
       </Route>

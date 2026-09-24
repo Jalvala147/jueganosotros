@@ -60,6 +60,7 @@ export function useCanvas(height = 420) {
       c.height = Math.floor(height * dpr)
       c.style.width = `${w}px`
       c.style.height = `${height}px`
+      c.style.touchAction = 'none'
     }
     resize()
     window.addEventListener('resize', resize)

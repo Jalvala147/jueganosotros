@@ -10,6 +10,15 @@ export function mulberry32(seed: number): () => number {
   }
 }
 
+/** La oportunidad 1 usa la semilla de la ronda. La 2 es otra, igual para todo el grupo. */
+export function attemptSeed(seed: number, attempt: number): number {
+  let n = seed >>> 0
+  const steps = Math.max(0, attempt)
+  for (let i = 0; i < steps; i++) n = (Math.imul(n, 1664525) + 1013904223) >>> 0
+  if (steps > 0 && n === (seed >>> 0)) n = (n + 1) >>> 0
+  return n
+}
+
 export function hashSeed(input: string): number {
   let h = 2166136261
   for (let i = 0; i < input.length; i++) {

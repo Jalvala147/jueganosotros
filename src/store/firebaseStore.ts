@@ -20,11 +20,12 @@ import {
   writeBatch,
 } from 'firebase/firestore'
 import { makeGroupCode, normalizeCode } from '../lib/codes'
-import { GAME_MAP, nextGameId } from '../games/catalog'
+import { makeId } from '../lib/ids'
+import { findGame, nextGameId } from '../games/catalog'
 import { getFirebase } from '../lib/firebase'
 import { buildCareer } from '../lib/career'
-import { closeRoundScoring, compareMembers, emptyMember, resetSeasonMember, shouldAutoClose } from '../lib/scoring'
-import type { AvatarLook, GameId, Group, GroupSnapshot, Member, PlayRecord, Round, UserProfile } from '../types'
+import { closeRoundScoring, compareMembers, emptyMember, majorityReached, resetSeasonMember } from '../lib/scoring'
+import type { AvatarLook, ChatMessage, GameId, Group, GroupSnapshot, Member, PlayRecord, Round, UserProfile } from '../types'
 import { defaultSettings, firstRound, type AuthAPI, type MyGroup, type StoreAPI } from './types'
 
 function isMobile() {
@@ -205,13 +206,13 @@ export const firebaseStore: StoreAPI = {
     })
   },
 
-  async createGroup(uid, name, displayName, photoURL, avatar: AvatarLook | null = null) {
+  async createGroup(uid, name, displayName, photoURL, avatar: AvatarLook | null = null, changeMinutes?: number) {
     const { db } = getFirebase()
     const id = doc(collection(db, 'groups')).id
     const code = makeGroupCode()
     const seed = (crypto.getRandomValues(new Uint32Array(1))[0] ?? Date.now()) >>> 0
     const gameId = nextGameId(null, seed)
-    const settings = defaultSettings()
+    const settings = { ...defaultSettings(), changeMinutes }
     const round = firstRound(id, gameId, seed, settings.timeoutHours)
     const group: Group = {
       id,
@@ -322,6 +323,32 @@ export const firebaseStore: StoreAPI = {
     }
   },
 
+  watchMessages(groupId, cb) {
+    return onSnapshot(groupRef(groupId), (snap) => {
+      const chat = (snap.data() as { chat?: ChatMessage[] } | undefined)?.chat ?? []
+      cb([...chat].sort((a, b) => a.createdAt - b.createdAt))
+    })
+  },
+
+  async sendMessage(groupId, uid, name, text) {
+    const clean = text.trim().slice(0, 240)
+    if (!clean) throw new Error('Escribe un mensaje')
+    const { db } = getFirebase()
+    const message: ChatMessage = {
+      id: makeId('m'),
+      uid,
+      name: name.trim().slice(0, 24) || 'Jugador',
+      text: clean,
+      createdAt: Date.now(),
+    }
+    await runTransaction(db, async (tx) => {
+      const snap = await tx.get(groupRef(groupId))
+      if (!snap.exists()) throw new Error('No encontré la liga')
+      const chat = ((snap.data() as { chat?: ChatMessage[] }).chat ?? []).slice(-79)
+      tx.update(groupRef(groupId), { chat: [...chat, message] })
+    })
+  },
+
   async submitPlay(groupId, roundId, uid, kind, score) {
     const { db } = getFirebase()
     const record = await runTransaction(db, async (tx) => {
@@ -348,8 +375,8 @@ export const firebaseStore: StoreAPI = {
       } else {
         if (prev.official.length >= group.settings.officialAttempts) throw new Error('No te quedan intentos')
         prev.official.push(score)
-        const meta = GAME_MAP[round.gameId]
-        prev.best = meta.direction === 'lower' ? Math.min(...prev.official) : Math.max(...prev.official)
+        const meta = findGame(round.gameId)
+        prev.best = meta?.direction === 'lower' ? Math.min(...prev.official) : Math.max(...prev.official)
         if (prev.official.length >= group.settings.officialAttempts) {
           prev.finished = true
           prev.usedLastAttempt = prev.official[prev.official.length - 1] === prev.best && prev.official.length > 1
@@ -359,24 +386,33 @@ export const firebaseStore: StoreAPI = {
       tx.set(playRef(groupId, roundId, uid), prev)
       return prev
     })
-
-    const [membersSnap, playsSnap, groupSnap] = await Promise.all([
-      getDocs(collection(db, 'groups', groupId, 'members')),
-      getDocs(collection(db, 'groups', groupId, 'rounds', roundId, 'plays')),
-      getDoc(groupRef(groupId)),
-    ])
-    const memberIds = membersSnap.docs.map((d) => d.id)
-    const finished = new Set(
-      playsSnap.docs.filter((d) => (d.data() as PlayRecord).finished).map((d) => d.id),
-    )
-    if (
-      groupSnap.exists() &&
-      (groupSnap.data() as Group).currentRoundId === roundId &&
-      shouldAutoClose(memberIds.length, finished.size)
-    ) {
-      await firebaseStore.closeAndAdvance(groupId)
-    }
     return record
+  },
+
+  async voteAdvance(groupId, uid) {
+    const { db } = getFirebase()
+    let go = false
+    await runTransaction(db, async (tx) => {
+      const gSnap = await tx.get(groupRef(groupId))
+      if (!gSnap.exists()) throw new Error('Grupo no encontrado')
+      const group = gSnap.data() as Group
+      const rSnap = await tx.get(roundRef(groupId, group.currentRoundId))
+      if (!rSnap.exists()) throw new Error('La ronda ya no está activa')
+      const round = rSnap.data() as Round
+      if (round.status !== 'active') throw new Error('La ronda ya no está activa')
+      const memberIds = group.memberIds ?? []
+      for (const memberId of memberIds) {
+        const play = await tx.get(playRef(groupId, round.id, memberId))
+        if (!play.exists() || !(play.data() as PlayRecord).finished) {
+          throw new Error('Faltan jugadores por terminar sus dos turnos')
+        }
+      }
+      const votes = new Set(round.advanceVotes ?? [])
+      votes.add(uid)
+      tx.update(roundRef(groupId, round.id), { advanceVotes: [...votes] })
+      go = majorityReached(votes.size, memberIds.length)
+    })
+    if (go) await firebaseStore.closeAndAdvance(groupId)
   },
 
   async closeAndAdvance(groupId) {
@@ -403,7 +439,7 @@ export const firebaseStore: StoreAPI = {
       const { results, members: next } = closeRoundScoring({
         members,
         plays,
-        lowerIsBetter: GAME_MAP[round.gameId].direction === 'lower',
+        lowerIsBetter: findGame(round.gameId)?.direction === 'lower',
         gameId: round.gameId,
       })
 
@@ -427,7 +463,7 @@ export const firebaseStore: StoreAPI = {
     const { db } = getFirebase()
     const g = await getDoc(groupRef(groupId))
     if (!g.exists() || (g.data() as Group).createdBy !== uid) {
-      throw new Error('Solo el creador puede resetear la temporada')
+      throw new Error('Solo quien creó el grupo puede reiniciar la temporada')
     }
     const members = await getDocs(collection(db, 'groups', groupId, 'members'))
     const batch = writeBatch(db)

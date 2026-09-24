@@ -7,6 +7,7 @@ import { getStore } from '../store'
 export function CreateGroup() {
   const { session, profile } = useAuth()
   const [name, setName] = useState('')
+  const [changeAt, setChangeAt] = useState('21:00')
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const nav = useNavigate()
@@ -17,12 +18,15 @@ export function CreateGroup() {
     setBusy(true)
     setError(null)
     try {
+      const [hour, minute] = changeAt.split(':').map((part) => Number(part))
+      const changeMinutes = (hour || 0) * 60 + (minute || 0)
       const id = await getStore().createGroup(
         session.uid,
         name,
         profile.displayName,
         profile.photoURL,
         profile.avatar,
+        changeMinutes,
       )
       nav(`/grupo/${id}`)
     } catch (err) {
@@ -39,11 +43,21 @@ export function CreateGroup() {
       <p className="text-lg font-bold text-ink/70">Te sale un código de 6 letras. Lo mandas y que se unan.</p>
       <input
         className="input text-lg"
-        placeholder="Ej. Los del piso"
+        placeholder="Ej. La banda"
         value={name}
         onChange={(e) => setName(e.target.value)}
         required
       />
+      <label className="block space-y-2">
+        <span className="text-sm font-black text-ink/70">Hora en la que cambia el juego solo</span>
+        <input
+          className="input text-lg"
+          type="time"
+          value={changeAt}
+          onChange={(e) => setChangeAt(e.target.value)}
+          required
+        />
+      </label>
       <button className="btn btn-pink w-full" disabled={busy}>
         Crear y abrir ronda 1
       </button>

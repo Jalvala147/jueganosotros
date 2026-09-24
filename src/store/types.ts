@@ -1,5 +1,5 @@
 import type { Career } from '../lib/career'
-import type { AvatarLook, GameId, Group, GroupSnapshot, PlayRecord, UserProfile } from '../types'
+import type { AvatarLook, ChatMessage, GameId, Group, GroupSnapshot, PlayRecord, UserProfile } from '../types'
 
 export type SessionUser = {
   uid: string
@@ -40,6 +40,7 @@ export type StoreAPI = {
     displayName: string,
     photoURL: string | null,
     avatar?: AvatarLook | null,
+    changeMinutes?: number,
   ): Promise<string>
   joinGroup(
     uid: string,
@@ -49,6 +50,8 @@ export type StoreAPI = {
     avatar?: AvatarLook | null,
   ): Promise<string>
   watchGroup(groupId: string, cb: (snap: GroupSnapshot | null) => void): () => void
+  watchMessages(groupId: string, cb: (messages: ChatMessage[]) => void): () => void
+  sendMessage(groupId: string, uid: string, name: string, text: string): Promise<void>
   submitPlay(
     groupId: string,
     roundId: string,
@@ -57,6 +60,7 @@ export type StoreAPI = {
     score: number,
   ): Promise<PlayRecord>
   closeAndAdvance(groupId: string): Promise<void>
+  voteAdvance(groupId: string, uid: string): Promise<void>
   newSeason(groupId: string, uid: string): Promise<void>
   peekGroup(groupId: string): Promise<Group | null>
 }

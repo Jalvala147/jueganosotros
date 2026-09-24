@@ -65,7 +65,7 @@ export function LeaderCharts({ members, me }: { members: Member[]; me: string })
 
       <section className="card space-y-3 p-4">
         <div>
-          <p className="text-[11px] font-black uppercase tracking-[0.18em] text-ink/45">Rating</p>
+          <p className="text-[11px] font-black uppercase tracking-[0.18em] text-ink/45">Nivel</p>
           <h3 className="display text-2xl font-bold leading-none">Elo</h3>
         </div>
         <BarList rows={elo} min={800} empty="Sin Elo todavía." />

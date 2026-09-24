@@ -15,6 +15,9 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
+      workbox: {
+        importScripts: ['notify-sw.js'],
+      },
       includeAssets: ['icons/icon.svg', 'apple-touch-icon.png'],
       manifest: {
         name: 'JuegaNosotros',

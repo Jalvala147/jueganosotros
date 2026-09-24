@@ -11,10 +11,10 @@ const CYAN = '#28dad4'
 
 const BACK: Record<string, [string, string]> = {
   Reflejo: ['#7cf0ea', '#ffe58a'],
-  Timing: ['#c7b6ff', '#7cf0ea'],
+  Tiempo: ['#c7b6ff', '#7cf0ea'],
   Arcade: ['#ff8eab', '#ffe58a'],
   Memoria: ['#c7b6ff', '#ff8eab'],
-  Endless: ['#7cf0ea', '#c7b6ff'],
+  'Sin fin': ['#7cf0ea', '#c7b6ff'],
   Precisión: ['#ffe58a', '#ff8eab'],
   Puntería: ['#ff8eab', '#c7b6ff'],
   Deporte: ['#7cf0ea', '#ffe58a'],
@@ -82,11 +82,14 @@ function scene(id: GameId): ReactNode {
     case 'simon':
       return (
         <>
-          <path d="M80 22 A36 36 0 0 1 116 58 L80 58 Z" fill={PINK} stroke={INK} strokeWidth="3" />
-          <path d="M116 58 A36 36 0 0 1 80 94 L80 58 Z" fill={YELLOW} stroke={INK} strokeWidth="3" />
-          <path d="M80 94 A36 36 0 0 1 44 58 L80 58 Z" fill={CYAN} stroke={INK} strokeWidth="3" />
-          <path d="M44 58 A36 36 0 0 1 80 22 L80 58 Z" fill={PURPLE} stroke={INK} strokeWidth="3" />
-          <circle cx="80" cy="58" r="10" fill={WHITE} stroke={INK} strokeWidth="3" />
+          <rect x="28" y="16" width="48" height="36" rx="10" fill="#ff3b30" stroke={INK} strokeWidth="3" />
+          <rect x="84" y="16" width="48" height="36" rx="10" fill="#c8f8d4" stroke={WHITE} strokeWidth="4" />
+          <rect x="28" y="58" width="48" height="36" rx="10" fill="#007aff" stroke={INK} strokeWidth="3" />
+          <rect x="84" y="58" width="48" height="36" rx="10" fill="#ffcc00" stroke={INK} strokeWidth="3" />
+          <text x="52" y="40" textAnchor="middle" fontSize="16" fontWeight="700" fill={INK}>1</text>
+          <text x="108" y="40" textAnchor="middle" fontSize="16" fontWeight="700" fill={INK}>2</text>
+          <text x="52" y="82" textAnchor="middle" fontSize="16" fontWeight="700" fill={WHITE}>3</text>
+          <text x="108" y="82" textAnchor="middle" fontSize="16" fontWeight="700" fill={INK}>4</text>
         </>
       )
     case 'flappy':
@@ -136,9 +139,9 @@ function scene(id: GameId): ReactNode {
     case 'color-switch':
       return (
         <>
-          <rect x="28" y="24" width="104" height="18" rx="9" fill={PINK} stroke={INK} strokeWidth="3" />
-          <rect x="70" y="24" width="22" height="18" fill={CYAN} />
-          <circle cx="80" cy="78" r="16" fill={CYAN} stroke={INK} strokeWidth="4" />
+          <rect x="24" y="22" width="112" height="22" rx="11" fill={PINK} stroke={INK} strokeWidth="4" />
+          <circle cx="80" cy="74" r="24" fill={CYAN} stroke={INK} strokeWidth="4" />
+          <ellipse cx="71" cy="66" rx="8" ry="5" fill={WHITE} opacity="0.9" />
         </>
       )
     case 'knives':
@@ -200,45 +203,28 @@ function scene(id: GameId): ReactNode {
           <rect x="98" y="28" width="28" height="36" rx="6" fill={PURPLE} stroke={INK} strokeWidth="3" />
         </>
       )
-    case 'quick-maths':
-      return (
-        <text x="28" y="72" fontSize="36" fontWeight="700" fill={INK}>
-          3+4
-        </text>
-      )
-    case 'wordle':
+    case 'hanoi':
       return (
         <>
-          {['J', 'U', 'E', 'G', 'O'].map((ch, i) => (
-            <g key={ch}>
-              <rect x={22 + i * 24} y="40" width="20" height="20" rx="4" fill={i === 0 ? YELLOW : i === 2 ? PINK : WHITE} stroke={INK} strokeWidth="3" />
-              <text x={27 + i * 24} y="55" fontSize="12" fontWeight="700" fill={i === 2 ? WHITE : INK}>
-                {ch}
-              </text>
-            </g>
-          ))}
-        </>
-      )
-    case 'water-sort':
-      return (
-        <>
-          <rect x="36" y="24" width="22" height="64" rx="10" fill={WHITE} stroke={INK} strokeWidth="3" />
-          <rect x="40" y="52" width="14" height="16" fill={PINK} />
-          <rect x="40" y="68" width="14" height="14" fill={CYAN} />
-          <rect x="70" y="24" width="22" height="64" rx="10" fill={WHITE} stroke={INK} strokeWidth="3" />
-          <rect x="74" y="44" width="14" height="16" fill={YELLOW} />
-          <rect x="74" y="60" width="14" height="22" fill={PURPLE} />
-          <rect x="104" y="24" width="22" height="64" rx="10" fill={WHITE} stroke={INK} strokeWidth="3" />
+          <rect x="24" y="78" width="112" height="8" rx="3" fill={INK} />
+          <rect x="48" y="30" width="6" height="48" rx="2" fill={INK} />
+          <rect x="78" y="40" width="6" height="38" rx="2" fill={INK} />
+          <rect x="108" y="52" width="6" height="26" rx="2" fill={INK} />
+          <rect x="32" y="66" width="38" height="10" rx="5" fill={PURPLE} stroke={INK} strokeWidth="3" />
+          <rect x="38" y="54" width="26" height="10" rx="5" fill={YELLOW} stroke={INK} strokeWidth="3" />
+          <rect x="44" y="42" width="14" height="10" rx="5" fill={PINK} stroke={INK} strokeWidth="3" />
         </>
       )
     case 'lane-race':
       return (
         <>
-          <rect x="36" y="16" width="28" height="80" rx="8" fill="#efe6ff" stroke={INK} strokeWidth="3" />
-          <rect x="66" y="16" width="28" height="80" rx="8" fill={WHITE} stroke={INK} strokeWidth="3" />
-          <rect x="96" y="16" width="28" height="80" rx="8" fill="#efe6ff" stroke={INK} strokeWidth="3" />
-          <rect x="72" y="62" width="16" height="24" rx="4" fill={PINK} stroke={INK} strokeWidth="3" />
-          <rect x="40" y="28" width="16" height="20" rx="4" fill={YELLOW} stroke={INK} strokeWidth="3" />
+          <rect x="28" y="24" width="34" height="22" fill="#c4563a" stroke={INK} strokeWidth="3" />
+          <rect x="28" y="35" width="17" height="11" fill="#a3442e" />
+          <rect x="98" y="24" width="34" height="22" fill="#8d98a6" stroke={INK} strokeWidth="3" />
+          <rect x="98" y="35" width="17" height="11" fill="#6d7580" />
+          <text x="80" y="86" textAnchor="middle" fontSize="34">
+            🚗
+          </text>
         </>
       )
     default:

@@ -40,8 +40,8 @@ export function Login() {
           <span className="text-pink">Nosotros</span>
         </h1>
         <p className="mx-auto mt-4 max-w-sm text-center text-base font-bold text-ink/75">
-          20 minijuegos. Misma partida para tu grupo. La siguiente ronda sale cuando todos
-          hayan jugado — no cada 24 horas.
+          18 minijuegos. La misma partida para tu grupo. La siguiente ronda sale cuando todos
+          hayan jugado, no cada 24 horas.
         </p>
 
         <div className="mt-8 space-y-3">

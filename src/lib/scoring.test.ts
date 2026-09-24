@@ -5,6 +5,8 @@ import {
   formPoints,
   placementPoints,
   rankByScore,
+  changeIsDue,
+  majorityReached,
   shouldAutoClose,
   updateElo,
 } from './scoring'
@@ -16,6 +18,21 @@ describe('shouldAutoClose', () => {
   it('cierra cuando todos han jugado siendo 2 o más', () => {
     expect(shouldAutoClose(2, 2)).toBe(true)
     expect(shouldAutoClose(3, 2)).toBe(false)
+  })
+})
+
+describe('avance de ronda', () => {
+  it('pide mayoría estricta', () => {
+    expect(majorityReached(1, 2)).toBe(false)
+    expect(majorityReached(2, 2)).toBe(true)
+    expect(majorityReached(2, 3)).toBe(true)
+  })
+  it('cambia solo si ya pasó la hora y la ronda empezó antes', () => {
+    const slot = new Date('2026-09-23T21:00:00')
+    const before = slot.getTime() - 60_000
+    const after = slot.getTime() + 60_000
+    expect(changeIsDue(before, 21 * 60, after)).toBe(true)
+    expect(changeIsDue(after, 21 * 60, after + 1000)).toBe(false)
   })
 })
 
@@ -43,6 +60,19 @@ describe('rankByScore', () => {
       ['b', 1],
       ['c', 3],
     ])
+  })
+
+  it('en empate gana quien usó menos intentos y, si sigue igual, quien llegó después', () => {
+    const ranked = rankByScore(
+      [
+        { uid: 'tarde', best: 10, attempts: 2, at: 300 },
+        { uid: 'pocos', best: 10, attempts: 1, at: 100 },
+        { uid: 'despues', best: 10, attempts: 2, at: 400 },
+      ],
+      false,
+    )
+    expect(ranked.map((r) => r.uid)).toEqual(['pocos', 'despues', 'tarde'])
+    expect(ranked.map((r) => r.rank)).toEqual([1, 2, 3])
   })
 
   it('invierte si menor es mejor', () => {
@@ -105,6 +135,8 @@ describe('closeRoundScoring', () => {
     expect(ana.wins).toBe(1)
     expect(cata.playStreak).toBe(0)
     expect(cata.seasonPoints).toBe(0)
+    expect(cata.elo).toBe(1000)
+    expect(ana.elo).toBeGreaterThan(1000)
     expect(formPoints(ana.lastFivePoints)).toBe(ana.seasonPoints)
   })
 })

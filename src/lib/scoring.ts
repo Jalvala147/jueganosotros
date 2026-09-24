@@ -4,10 +4,20 @@ export function shouldAutoClose(memberCount: number, finishedCount: number): boo
   return memberCount >= 2 && finishedCount >= memberCount && memberCount > 0
 }
 
+export function majorityReached(votes: number, members: number): boolean {
+  return members > 0 && votes * 2 > members
+}
+
+export function changeIsDue(startedAt: number, changeMinutes: number | undefined, now = Date.now()): boolean {
+  if (changeMinutes == null || changeMinutes < 0 || changeMinutes >= 24 * 60) return false
+  const slot = new Date(now)
+  slot.setHours(Math.floor(changeMinutes / 60), changeMinutes % 60, 0, 0)
+  return now >= slot.getTime() && startedAt < slot.getTime()
+}
+
 export const PLACEMENT_TABLE = [25, 18, 15, 12, 10, 8, 6, 4, 2, 1] as const
 export const PARTICIPATION_POINTS = 2
 export const STARTING_ELO = 1000
-export const ELO_K = 24
 
 export function placementPoints(rank: number): number {
   if (rank <= 0) return 0
@@ -31,28 +41,58 @@ export function compareMembers(a: Member, b: Member): number {
   return a.displayName.localeCompare(b.displayName, 'es')
 }
 
+export function attemptsToBest(official: number[], best: number | null): number {
+  if (best == null) return official.length || 99
+  const index = official.findIndex((score) => score === best)
+  return index >= 0 ? index + 1 : Math.max(official.length, 1)
+}
+
+type RankedScore = { uid: string; best: number; attempts?: number; at?: number }
+
+function sameResult(a: RankedScore, b: RankedScore) {
+  return a.best === b.best && (a.attempts ?? 0) === (b.attempts ?? 0) && (a.at ?? 0) === (b.at ?? 0)
+}
+
+export function compareScores(a: RankedScore, b: RankedScore, lowerIsBetter: boolean) {
+  if (a.best !== b.best) return lowerIsBetter ? a.best - b.best : b.best - a.best
+  const tries = (a.attempts ?? 0) - (b.attempts ?? 0)
+  if (tries !== 0) return tries
+  return (b.at ?? 0) - (a.at ?? 0)
+}
+
 export function rankByScore(
-  scores: { uid: string; best: number }[],
+  scores: RankedScore[],
   lowerIsBetter: boolean,
 ): { uid: string; best: number; rank: number }[] {
-  const sorted = [...scores].sort((a, b) =>
-    lowerIsBetter ? a.best - b.best : b.best - a.best,
-  )
+  const sorted = [...scores].sort((a, b) => compareScores(a, b, lowerIsBetter))
   const out: { uid: string; best: number; rank: number }[] = []
   for (let i = 0; i < sorted.length; i++) {
     const current = sorted[i]!
     const prev = sorted[i - 1]
-    const rank =
-      prev && prev.best === current.best ? out[i - 1]!.rank : i + 1
+    const rank = prev && sameResult(prev, current) ? out[i - 1]!.rank : i + 1
     out.push({ uid: current.uid, best: current.best, rank })
   }
   return out
 }
 
+export function eloK(roundsPlayed: number): number {
+  if (roundsPlayed < 8) return 40
+  if (roundsPlayed < 24) return 24
+  return 16
+}
+
+export function eloTier(elo: number): string {
+  if (elo >= 1600) return 'Diamante'
+  if (elo >= 1400) return 'Platino'
+  if (elo >= 1200) return 'Oro'
+  if (elo >= 1000) return 'Plata'
+  return 'Bronce'
+}
+
 export function updateElo(
   ratings: Record<string, number>,
   ranks: Record<string, number>,
-  k = ELO_K,
+  roundsPlayed: Record<string, number> = {},
 ): Record<string, number> {
   const uids = Object.keys(ranks)
   const next = { ...ratings }
@@ -60,6 +100,7 @@ export function updateElo(
 
   for (const a of uids) {
     let delta = 0
+    const ka = eloK(roundsPlayed[a] ?? 0)
     for (const b of uids) {
       if (a === b) continue
       const ra = ratings[a] ?? STARTING_ELO
@@ -68,9 +109,12 @@ export function updateElo(
       let actual = 0.5
       if (ranks[a]! < ranks[b]!) actual = 1
       else if (ranks[a]! > ranks[b]!) actual = 0
-      delta += k * (actual - expected)
+      const places = Math.abs((ranks[a] ?? 0) - (ranks[b] ?? 0))
+      const margin = actual === 0.5 ? 1 : 1 + Math.min(0.5, Math.max(0, places - 1) * 0.15)
+      delta += ka * (actual - expected) * margin
     }
-    next[a] = Math.round((ratings[a] ?? STARTING_ELO) + delta / (uids.length - 1))
+    const raw = (ratings[a] ?? STARTING_ELO) + delta / (uids.length - 1)
+    next[a] = Math.max(100, Math.round(raw))
   }
   return next
 }
@@ -100,7 +144,15 @@ export function closeRoundScoring({
   const played = members.filter((m) => plays[m.uid]?.finished && plays[m.uid]?.best != null)
   const absent = members.filter((m) => !played.some((p) => p.uid === m.uid))
   const ranked = rankByScore(
-    played.map((m) => ({ uid: m.uid, best: plays[m.uid]!.best! })),
+    played.map((m) => {
+      const play = plays[m.uid]!
+      return {
+        uid: m.uid,
+        best: play.best!,
+        attempts: attemptsToBest(play.official, play.best),
+        at: play.updatedAt,
+      }
+    }),
     lowerIsBetter,
   )
   const lastRank = members.length
@@ -109,8 +161,16 @@ export function closeRoundScoring({
   for (const m of absent) ranks[m.uid] = lastRank
 
   const ratings: Record<string, number> = {}
+  const playedRatings: Record<string, number> = {}
+  const playedRanks: Record<string, number> = {}
+  const playedRounds: Record<string, number> = {}
   for (const m of members) ratings[m.uid] = m.elo
-  const nextElo = updateElo(ratings, ranks)
+  for (const row of ranked) {
+    playedRatings[row.uid] = ratings[row.uid] ?? STARTING_ELO
+    playedRanks[row.uid] = row.rank
+    playedRounds[row.uid] = members.find((m) => m.uid === row.uid)?.roundsPlayed ?? 0
+  }
+  const nextElo = { ...ratings, ...updateElo(playedRatings, playedRanks, playedRounds) }
 
   const results: RoundResult[] = []
   const nextMembers = members.map((member) => {

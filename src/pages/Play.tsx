@@ -3,7 +3,8 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
 import { GamePreview } from '../components/GamePreview'
 import { GameHost } from '../games/Host'
-import { GAME_MAP } from '../games/catalog'
+import { findGame } from '../games/catalog'
+import { attemptSeed } from '../lib/rng'
 import { getStore } from '../store'
 import type { GroupSnapshot } from '../types'
 
@@ -15,6 +16,7 @@ export function Play() {
   const [phase, setPhase] = useState<'ready' | 'live' | 'result'>('ready')
   const [kind, setKind] = useState<'practice' | 'official'>('official')
   const [lastScore, setLastScore] = useState<number | null>(null)
+  const [attempt, setAttempt] = useState(0)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -22,10 +24,26 @@ export function Play() {
   }, [groupId])
 
   if (!snap || !session) return <p className="font-black text-ink/60">Cargando…</p>
-  const game = GAME_MAP[snap.round.gameId]
+  const game = findGame(snap.round.gameId)
   const play = snap.plays[session.uid]
   const practiceLeft = snap.group.settings.practiceEnabled && play?.practiceScore == null
-  const officialLeft = snap.group.settings.officialAttempts - (play?.official.length ?? 0)
+  const totalAttempts = snap.group.settings.officialAttempts || 2
+  const officialLeft = totalAttempts - (play?.official.length ?? 0)
+  const nextAttempt = Math.min((play?.official.length ?? 0) + 1, totalAttempts)
+
+  if (!game) {
+    return (
+      <div className="card space-y-3 p-6">
+        <p className="text-lg font-extrabold leading-snug text-ink">Este juego ya no está.</p>
+        <p className="font-bold leading-relaxed text-ink/70">
+          Vuelve a la liga y cierren la ronda para pasar a la siguiente.
+        </p>
+        <Link to={`/grupo/${groupId}`} className="btn btn-pink w-full">
+          Volver a la liga
+        </Link>
+      </div>
+    )
+  }
 
   if (play?.finished) {
     return (
@@ -61,11 +79,15 @@ export function Play() {
             <GamePreview id={game.id} className="h-10 w-10 shrink-0 rounded-xl" />
             <span className="truncate">{game.name}</span>
           </span>
-          <span className="shrink-0 rounded-full border-[3px] border-ink bg-pink px-2 py-0.5 text-xs text-white">
-            {kind === 'practice' ? 'Práctica' : `Oficial ${(play?.official.length ?? 0) + 1}`}
+          <span className="display shrink-0 rounded-full border-[3px] border-ink bg-pink px-3 py-1 text-sm font-bold text-white">
+            {kind === 'practice' ? 'Práctica' : `Intento ${attempt + 1}/${totalAttempts}`}
           </span>
         </div>
-        <GameHost id={snap.round.gameId} seed={snap.round.seed} onFinish={finish} />
+        <GameHost
+          id={snap.round.gameId}
+          seed={attemptSeed(snap.round.seed, kind === 'practice' ? 9 : attempt)}
+          onFinish={finish}
+        />
       </div>
     )
   }
@@ -73,21 +95,22 @@ export function Play() {
   if (phase === 'result' && lastScore != null) {
     return (
       <div className="card pop space-y-4 p-6 text-center">
-        <p className="text-sm font-black uppercase tracking-widest text-ink/45">
-          {kind === 'practice' ? 'Práctica' : 'Intento oficial'}
+        <p className="display text-2xl font-bold leading-none text-ink">
+          {kind === 'practice' ? 'Práctica' : `Intento ${attempt + 1}/${totalAttempts}`}
         </p>
         <p className="display text-7xl font-bold leading-none text-pink">{lastScore}</p>
         {error && <p className="text-sm font-black text-pink">{error}</p>}
         <div className="space-y-2">
-          {officialLeft > 0 && (
+          {attempt === 0 && officialLeft > 0 && (
             <button
               className="btn btn-pink w-full"
               onClick={() => {
                 setKind('official')
+                setAttempt((n) => n + 1)
                 setPhase('live')
               }}
             >
-              Otro intento oficial
+              Intento {attempt + 2}/{totalAttempts}
             </button>
           )}
           <button className="btn btn-ghost w-full" onClick={() => nav(`/grupo/${groupId}`)}>
@@ -110,15 +133,11 @@ export function Play() {
             {game.category}
           </p>
           <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-ink/80 to-transparent px-4 pb-4 pt-10">
-            <h1 className="display break-words text-4xl font-bold leading-none text-white">{game.name}</h1>
+            <h1 className="display break-words text-3xl font-bold leading-tight text-white">{game.name}</h1>
           </div>
         </div>
-        <p className="p-4 font-bold text-ink/70">{game.hint}</p>
+        <p className="p-4 text-[17px] font-extrabold leading-relaxed break-words text-ink/80">{game.guide}</p>
       </div>
-      <p className="text-center text-sm font-black text-ink/60">
-        {officialLeft} intento(s) oficial(es)
-        {practiceLeft ? ' · 1 práctica gratis' : ''}
-      </p>
       {practiceLeft && (
         <button
           className="btn btn-yellow w-full"
@@ -135,10 +154,11 @@ export function Play() {
         disabled={officialLeft <= 0}
         onClick={() => {
           setKind('official')
+          setAttempt(play?.official.length ?? 0)
           setPhase('live')
         }}
       >
-        Jugar oficial
+        Intento {nextAttempt}/{totalAttempts}
       </button>
     </div>
   )

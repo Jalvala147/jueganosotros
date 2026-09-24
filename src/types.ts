@@ -19,9 +19,7 @@ export type GameId =
   | 'piano'
   | 'puzzle-2048'
   | 'memory'
-  | 'quick-maths'
-  | 'wordle'
-  | 'water-sort'
+  | 'hanoi'
   | 'lane-race'
 
 export type ScoreDirection = 'higher' | 'lower'
@@ -42,6 +40,7 @@ export type GroupSettings = {
   officialAttempts: number
   practiceEnabled: boolean
   timeoutHours: number
+  changeMinutes?: number
 }
 
 export type Group = {
@@ -113,6 +112,15 @@ export type Round = {
   timeoutAt: number
   closedAt: number | null
   results: RoundResult[] | null
+  advanceVotes?: string[]
+}
+
+export type ChatMessage = {
+  id: string
+  uid: string
+  name: string
+  text: string
+  createdAt: number
 }
 
 export type GroupSnapshot = {
@@ -132,4 +140,5 @@ export type GameMeta = {
   emoji: string
   direction: ScoreDirection
   hint: string
+  guide: string
 }

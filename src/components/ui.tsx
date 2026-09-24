@@ -109,3 +109,10 @@ export function rankTone(index: number): string {
   if (index === 2) return 'bg-purple text-white'
   return 'bg-mute text-white'
 }
+
+export function placeFrame(place: number): string {
+  if (place === 1) return 'outline outline-[5px] outline-offset-2 outline-yellow'
+  if (place === 2) return 'outline outline-[4px] outline-offset-2 outline-white'
+  if (place === 3) return 'outline outline-[4px] outline-offset-2 outline-[#cd7f32]'
+  return ''
+}

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
 import { GamePreview } from '../components/GamePreview'
-import { GAMES, GAME_MAP } from '../games/catalog'
+import { findGame, GAMES } from '../games/catalog'
 import { bestIn, emptyCareer, type Career } from '../lib/career'
 import { getStore } from '../store'
 import type { GameId } from '../types'
@@ -23,20 +23,21 @@ export function Showcase() {
     return new Date(now.getFullYear(), now.getMonth(), 1).getTime()
   }, [])
   const marks = span === 'month' ? career.marks.filter((m) => m.at >= monthStart) : career.marks
-  const monthName = new Date().toLocaleDateString('es', { month: 'long' })
+  const monthName = new Date().toLocaleDateString('es-MX', { month: 'long' })
   const label = monthName.charAt(0).toUpperCase() + monthName.slice(1)
 
+  const playedIds = new Set(marks.map((mark) => mark.gameId))
+  const played = GAMES.filter((game) => playedIds.has(game.id))
   const featuredId =
-    GAMES.slice()
+    played
+      .slice()
       .sort((a, b) => (career.gameWins[b.id] ?? 0) - (career.gameWins[a.id] ?? 0))
-      .find((g) => (career.gameWins[g.id] ?? 0) > 0)?.id ??
-    marks[0]?.gameId ??
-    'reaction'
-  const featured = GAME_MAP[featuredId]
-  const featuredScore = bestIn(marks, featuredId)
-  const standout = (career.gameWins[featuredId] ?? 0) > 0
+      .find((g) => (career.gameWins[g.id] ?? 0) > 0)?.id ?? marks[0]?.gameId
+  const featured = featuredId ? findGame(featuredId) : null
+  const featuredScore = featured ? bestIn(marks, featured.id) : null
+  const standout = featured ? (career.gameWins[featured.id] ?? 0) > 0 : false
 
-  const selected = picked ? GAME_MAP[picked] : null
+  const selected = picked && playedIds.has(picked) ? findGame(picked) : null
   const board = picked && span === 'all' ? career.boards[picked] ?? [] : []
 
   return (
@@ -55,24 +56,32 @@ export function Showcase() {
         <Stat n={career.rivals} label="Rivales" tone="bg-[#d4f6ef]" />
       </div>
 
-      <section className="flex items-center gap-3 rounded-[1.4rem] border-[3px] border-ink bg-mute p-3 text-white shadow-[0_5px_0_#1c1430]">
-        <GamePreview id={featured.id} className="h-16 w-16 shrink-0 rounded-2xl" />
-        <div className="min-w-0">
-          <p className="display truncate text-xl font-bold leading-none">{featured.name}</p>
-          <p className="mt-1 text-sm font-bold text-white/80">
-            {standout
-              ? 'Aquí es donde más destacas frente al resto.'
-              : 'Juega una ronda y aquí verás dónde destacas.'}
-          </p>
-          {featuredScore != null && (
-            <p className="display mt-1 text-lg font-bold text-yellow">{featuredScore} pts</p>
-          )}
-        </div>
-      </section>
+      {featured ? (
+        <section className="flex items-center gap-3 rounded-[1.4rem] border-[3px] border-ink bg-mute p-3 text-white shadow-[0_5px_0_#1c1430]">
+          <GamePreview id={featured.id} className="h-16 w-16 shrink-0 rounded-2xl" />
+          <div className="min-w-0">
+            <p className="display truncate text-xl font-bold leading-none">{featured.name}</p>
+            <p className="mt-1 text-sm font-bold text-white/80">
+              {standout
+                ? 'Aquí es donde más destacas frente al resto.'
+                : 'Juega una ronda y aquí verás dónde destacas.'}
+            </p>
+            {featuredScore != null && (
+              <p className="display mt-1 text-lg font-bold text-yellow">{featuredScore} pts</p>
+            )}
+          </div>
+        </section>
+      ) : (
+        <p className="card p-4 text-sm font-bold text-ink/60">
+          {span === 'month' && career.marks.length > 0
+            ? 'Este mes todavía no has cerrado una ronda.'
+            : 'Cuando cierres una ronda, el juego aparece aquí.'}
+        </p>
+      )}
 
       <div className="flex justify-center gap-2">
         <button
-          className={`rounded-full border-[3px] border-ink px-4 py-1.5 text-sm font-black ${
+          className={`min-h-12 rounded-full border-[3px] border-ink px-5 text-sm font-black ${
             span === 'month' ? 'bg-white text-ink shadow-[0_3px_0_#1c1430]' : 'bg-white/40 text-ink/70'
           }`}
           onClick={() => setSpan('month')}
@@ -80,7 +89,7 @@ export function Showcase() {
           {label}
         </button>
         <button
-          className={`rounded-full border-[3px] border-ink px-4 py-1.5 text-sm font-black ${
+          className={`min-h-12 rounded-full border-[3px] border-ink px-5 text-sm font-black ${
             span === 'all' ? 'bg-white text-ink shadow-[0_3px_0_#1c1430]' : 'bg-white/40 text-ink/70'
           }`}
           onClick={() => setSpan('all')}
@@ -90,7 +99,7 @@ export function Showcase() {
       </div>
 
       <div className="grid grid-cols-2 gap-3">
-        {GAMES.map((game) => {
+        {played.map((game) => {
           const score = bestIn(marks, game.id)
           const active = picked === game.id
           return (
@@ -113,7 +122,9 @@ export function Showcase() {
           )
         })}
       </div>
-      <p className="text-center text-sm font-black text-ink/55">Toca un juego para ver la clasificación.</p>
+      <p className="text-center text-sm font-black text-ink/55">
+        {played.length ? 'Toca un juego para ver la clasificación.' : 'Aquí solo salen los juegos que ya jugaste.'}
+      </p>
 
       {selected && (
         <section className="card space-y-3 p-4">

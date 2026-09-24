@@ -1,35 +1,38 @@
 import type { GameId, GameMeta } from '../types'
 
 export const GAMES: GameMeta[] = [
-  { id: 'green-tap', name: 'Toque verde', blurb: 'Toca solo cuando esté verde', category: 'Reflejo', accent: '#7cff6b', emoji: '🟢', direction: 'higher', hint: 'Rojo penaliza. Verde suma.' },
-  { id: 'reaction', name: 'Reacción', blurb: 'Toca en cuanto cambie el color', category: 'Reflejo', accent: '#ffd60a', emoji: '⚡', direction: 'higher', hint: '5 rondas. Mejor tiempo = más puntos.' },
-  { id: 'stop-bar', name: 'Para la barra', blurb: 'Detén la aguja en la zona', category: 'Timing', accent: '#3de0ff', emoji: '🎯', direction: 'higher', hint: 'La zona se estrecha cada ronda.' },
-  { id: 'whack', name: 'Topos', blurb: 'Golpea topos, esquiva bombas', category: 'Arcade', accent: '#ff8a3d', emoji: '🐹', direction: 'higher', hint: '45 segundos. Bomba = -2.' },
-  { id: 'simon', name: 'Simon', blurb: 'Repite la secuencia de colores', category: 'Memoria', accent: '#c084fc', emoji: '🎹', direction: 'higher', hint: 'Un fallo y se acaba.' },
-  { id: 'flappy', name: 'Aleteo', blurb: 'Un toque, un aleteo', category: 'Endless', accent: '#7cff6b', emoji: '🐦', direction: 'higher', hint: 'Pasa tuberías. No toques los bordes.' },
-  { id: 'snake', name: 'Serpiente', blurb: 'Come y no te muerdas', category: 'Endless', accent: '#4ade80', emoji: '🐍', direction: 'higher', hint: 'Desliza para girar.' },
-  { id: 'stack', name: 'Torre', blurb: 'Apila bloques cada vez más finos', category: 'Precisión', accent: '#f472b6', emoji: '🏗️', direction: 'higher', hint: 'Toca para soltar. Fallo = se corta.' },
-  { id: 'crossy', name: 'Cruza', blurb: 'Atraviesa la calle', category: 'Arcade', accent: '#38bdf8', emoji: '🐔', direction: 'higher', hint: 'Arriba para avanzar. Coches matan.' },
-  { id: 'color-switch', name: 'Color switch', blurb: 'Pasa por el color correcto', category: 'Timing', accent: '#f43f5e', emoji: '🧿', direction: 'higher', hint: 'Toca para cambiar de color.' },
-  { id: 'knives', name: 'Cuchillos', blurb: 'Clávalos en el tronco que gira', category: 'Puntería', accent: '#fb7185', emoji: '🔪', direction: 'higher', hint: 'No choques con otro cuchillo.' },
-  { id: 'darts', name: 'Dardos', blurb: 'Tres dardos, misma diana', category: 'Puntería', accent: '#f97316', emoji: '🎯', direction: 'higher', hint: 'Toca para fijar potencia y ángulo.' },
-  { id: 'penalty', name: 'Penaltis', blurb: 'Cinco tiros, un portero', category: 'Deporte', accent: '#22c55e', emoji: '⚽', direction: 'higher', hint: 'Apunta y toca. El portero usa la semilla.' },
-  { id: 'piano', name: 'Piano tiles', blurb: 'Toca las negras, no las blancas', category: 'Ritmo', accent: '#e2e8f0', emoji: '🎹', direction: 'higher', hint: 'Una blanca y terminas.' },
-  { id: 'puzzle-2048', name: '2048', blurb: '60 segundos, misma parrilla', category: 'Puzzle', accent: '#fbbf24', emoji: '🧩', direction: 'higher', hint: 'Desliza. Suma fichas iguales.' },
-  { id: 'memory', name: 'Memoria', blurb: 'Parejas 4×4, mismo tablero', category: 'Memoria', accent: '#818cf8', emoji: '🧠', direction: 'lower', hint: 'Menos movimientos y tiempo = mejor.' },
-  { id: 'quick-maths', name: 'Cálculo rápido', blurb: 'Operaciones a saco 30s', category: 'Números', accent: '#2dd4bf', emoji: '🧮', direction: 'higher', hint: 'Misma lista de cuentas para todos.' },
-  { id: 'wordle', name: 'Palabra', blurb: 'Una palabra, seis intentos', category: 'Palabras', accent: '#84cc16', emoji: '📝', direction: 'higher', hint: 'Misma palabra oculta para el grupo.' },
-  { id: 'water-sort', name: 'Agua de colores', blurb: 'Ordena los tubos', category: 'Puzzle', accent: '#06b6d4', emoji: '🧪', direction: 'lower', hint: 'Menos movimientos gana.' },
-  { id: 'lane-race', name: 'Carriles', blurb: 'Cambia de carril y aguanta', category: 'Acción', accent: '#ef4444', emoji: '🏎️', direction: 'higher', hint: 'Desliza izq/der. Hold no hace falta.' },
+  { id: 'green-tap', name: 'Toque verde', blurb: 'Toca solo cuando esté verde', category: 'Reflejo', accent: '#7cff6b', emoji: '🟢', direction: 'higher', hint: 'Rojo resta. Verde suma.', guide: 'La pantalla cambia entre verde y rojo. Toca solo en verde para sumar un punto. Si tocas en rojo, restas. Dura 30 segundos.' },
+  { id: 'reaction', name: 'Reacción', blurb: 'Toca en cuanto cambie el color', category: 'Reflejo', accent: '#ffd60a', emoji: '⚡', direction: 'lower', hint: '5 toques. Gana el promedio más bajo.', guide: 'Espera sin tocar. Cuando aparezca ¡YA!, toca de inmediato. Son cinco veces. Tu marca es el promedio de esos tiempos, en milisegundos. Gana el tiempo más bajo.' },
+  { id: 'stop-bar', name: 'Para la barra', blurb: 'Detén la aguja en la zona', category: 'Tiempo', accent: '#3de0ff', emoji: '🎯', direction: 'higher', hint: 'La zona verde se hace más angosta.', guide: 'Una aguja recorre la barra. Toca cuando esté en el tramo verde: se queda quieta y verás si entró o se pasó. Son ocho paradas. La zona se va haciendo más angosta.' },
+  { id: 'whack', name: 'Topos', blurb: 'Golpea topos, esquiva bombas', category: 'Arcade', accent: '#ff8a3d', emoji: '🐹', direction: 'higher', hint: '45 segundos. La bomba resta.', guide: 'Durante 45 segundos salen topos y bombas. Toca los topos para sumar. Si tocas una bomba, restas dos. Los huecos vacíos no hacen nada.' },
+  { id: 'simon', name: 'Simon', blurb: 'Repite la secuencia de colores', category: 'Memoria', accent: '#c084fc', emoji: '🟢', direction: 'higher', hint: 'Mira y luego repite.', guide: 'Hay cuatro botones: rojo, verde, azul y amarillo. Se aclara uno a la vez, sin cambiar de color. Cuando diga tu turno, tócalos en ese mismo orden: al presionarlos se ponen oscuros. Si aciertas la ronda, la siguiente no empieza sola: toca Siguiente cuando quieras verla. Un botón distinto y se acaba.' },
+  { id: 'flappy', name: 'Aleteo', blurb: 'Un toque, un aleteo', category: 'Sin fin', accent: '#7cff6b', emoji: '🐦', direction: 'higher', hint: 'Toca para empezar a volar.', guide: 'El pájaro flota hasta que tocas. Cada toque lo eleva; si no tocas, cae. Pasa por el hueco de los tubos sin pegarle ni salirte de la pantalla. Cada tubo que pases suma uno. El escenario se mueve un poquito más rápido conforme avanzas.' },
+  { id: 'snake', name: 'Serpiente', blurb: 'Come y no te muerdas', category: 'Sin fin', accent: '#4ade80', emoji: '🐍', direction: 'higher', hint: 'Desliza o usa las flechas.', guide: 'La serpiente avanza sola. Desliza el dedo en el tablero, o usa las flechas, para girar. Come el punto rosa para crecer. Si chocas con el borde o contigo, se acaba.' },
+  { id: 'stack', name: 'Torre', blurb: 'Apila bloques cada vez más delgados', category: 'Precisión', accent: '#f472b6', emoji: '🏗️', direction: 'higher', hint: 'Toca para soltar el bloque.', guide: 'Un bloque se mueve de lado a lado. Toca para soltarlo sobre la torre. Solo se queda la parte que coincide; el resto se corta. Si no cae encima, fallas y puedes ver dónde quedó antes de cerrar.' },
+  { id: 'crossy', name: 'Cruza', blurb: 'Atraviesa la calle', category: 'Arcade', accent: '#38bdf8', emoji: '🐔', direction: 'higher', hint: 'Arriba abre una fila nueva.', guide: 'Toca la pantalla o la flecha de arriba para avanzar un paso. A los lados cambias de carril. Cada paso abre una fila nueva de calle o de pasto. Los carros van más lento y siempre dejan un hueco. No hay meta: sigues hasta que te atropellen.' },
+  { id: 'color-switch', name: 'Cambio de color', blurb: 'Pasa con el color correcto', category: 'Tiempo', accent: '#f43f5e', emoji: '🧿', direction: 'higher', hint: 'Toca para cambiar de color.', guide: 'Una barra de color baja hacia tu bola. Cada toque cambia el color de la bola, en este orden: rosa, verde, azul y amarillo. Cuando la barra la cruce, tienen que ser el mismo color. Si no, se acaba.' },
+  { id: 'knives', name: 'Cuchillos', blurb: 'Clávalos en el tronco que gira', category: 'Puntería', accent: '#fb7185', emoji: '🔪', direction: 'higher', hint: 'Toca para lanzar.', guide: 'El tronco gira y el cuchillo de abajo espera. Toca para lanzarlo: vuela y se clava. Si ese lugar ya tiene un cuchillo, rebota y pierdes. Cada acierto hace que el tronco gire un poco más rápido.' },
+  { id: 'darts', name: 'Dardos', blurb: 'Tres dardos a la diana', category: 'Puntería', accent: '#f97316', emoji: '🎯', direction: 'higher', hint: 'Toca cuando la flecha esté a la altura del centro.', guide: 'La flecha sube y baja al lado de la diana. Toca la pantalla para dispararla: sale recto hacia la diana, a la altura en la que estaba. El centro vale 50, el anillo rosa 25 y el borde blanco 10. Si pasa por arriba o por abajo, no suma. Son tres dardos.' },
+  { id: 'penalty', name: 'Penales', blurb: 'Cinco tiros, un portero', category: 'Deporte', accent: '#22c55e', emoji: '⚽', direction: 'higher', hint: 'Toca la portería.', guide: 'El portero se mueve solo de un lado a otro. Toca dentro de la portería: el balón sale al instante hacia ese punto. Si el portero lo alcanza, es atajada. Si no, es gol. Son cinco tiros.' },
+  { id: 'piano', name: 'Teclas', blurb: 'Las negras suben, tócalas a tiempo', category: 'Ritmo', accent: '#e2e8f0', emoji: '🎹', direction: 'higher', hint: 'Toca la negra antes de que se salga.', guide: 'Las teclas suben solas. Toca la negra que va más arriba, antes de que se salga de la pantalla. Si tocas una blanca, o una negra que todavía no toca, pierdes. Cada acierto las acelera un poquito.' },
+  { id: 'puzzle-2048', name: '2048', blurb: '60 segundos, la misma cuadrícula', category: 'Puzzle', accent: '#fbbf24', emoji: '🧩', direction: 'higher', hint: 'Desliza para sumar.', guide: 'Desliza el dedo para mover todas las fichas hacia ese lado. Dos fichas con el mismo número se juntan y se doblan. Tienes 60 segundos. La marca es la suma de lo que combines.' },
+  { id: 'memory', name: 'Memoria', blurb: 'Parejas 4×4, el mismo tablero', category: 'Memoria', accent: '#818cf8', emoji: '🧠', direction: 'lower', hint: 'Menos movimientos gana.', guide: 'Hay ocho parejas boca abajo. Toca dos cartas. Si coinciden, se quedan. Si no, se tapan otra vez. Gana quien termine con menos movimientos y en menos tiempo. El mismo tablero es para todo el grupo.' },
+  { id: 'hanoi', name: 'Torres de Hanoi', blurb: 'Pasa los discos a la torre de la derecha', category: 'Puzzle', accent: '#06b6d4', emoji: '🗼', direction: 'lower', hint: 'Menos movimientos gana.', guide: 'Hay tres torres y cuatro discos, del más grande abajo al más chico arriba. Toca una torre para tomar el disco de encima y otra para dejarlo. Nunca pongas un disco grande sobre uno más chico. La meta es pasarlos todos a la torre de la derecha. Gana quien lo logre con menos movimientos.' },
+  { id: 'lane-race', name: 'Carriles', blurb: 'Cambia de carril y aguanta', category: 'Acción', accent: '#ef4444', emoji: '🏎️', direction: 'higher', hint: 'Toca el carril libre.', guide: 'Tu carro va abajo. Toca el carril de la izquierda, el de en medio o el de la derecha para cambiarte al instante. Esquiva los muros de ladrillo y de concreto que bajan. Siempre queda un carril libre. La velocidad sube de poquito en poquito. Mientras más aguantes, más puntos.' },
 ]
 
 export const GAME_MAP: Record<GameId, GameMeta> = Object.fromEntries(
   GAMES.map((g) => [g.id, g]),
 ) as Record<GameId, GameMeta>
 
+export function findGame(id: string | null | undefined): GameMeta | null {
+  if (!id) return null
+  return GAMES.find((game) => game.id === id) ?? null
+}
+
 export function nextGameId(previous: GameId | null, seed: number): GameId {
   const ids = GAMES.map((g) => g.id)
-  if (!previous) return ids[seed % ids.length]!
+  if (!previous || !ids.includes(previous)) return ids[Math.abs(seed) % ids.length]!
   const idx = ids.indexOf(previous)
   return ids[(idx + 1 + (seed % (ids.length - 1))) % ids.length]!
 }

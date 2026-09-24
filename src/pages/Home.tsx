@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
-import { Avatar, FaceRow, GameArt } from '../components/ui'
+import { Avatar, FaceRow, GameArt, placeFrame } from '../components/ui'
 import { emptyCareer, type Career } from '../lib/career'
-import { GAME_MAP } from '../games/catalog'
+import { findGame } from '../games/catalog'
 import { getStore } from '../store'
 import type { MyGroup } from '../store/types'
 
@@ -83,7 +83,7 @@ export function Home() {
           </div>
         )}
         {groups.map((g, i) => {
-          const game = g.gameId ? GAME_MAP[g.gameId] : null
+          const game = g.gameId ? findGame(g.gameId) : null
           const dark = i % 2 === 1
           return (
             <Link
@@ -100,9 +100,9 @@ export function Home() {
                 <div className="relative z-10 -mt-4 flex items-center justify-between gap-3">
                   <FaceRow people={g.members} ring={dark ? '#4C4660' : '#fff'} />
                   <span
-                    className={`display grid h-12 min-w-12 shrink-0 place-items-center rounded-2xl border-[3px] border-ink px-2 text-lg font-bold ${badgeTone(g.rank)}`}
+                    className={`display grid h-12 min-w-12 shrink-0 place-items-center rounded-2xl border-[3px] border-ink px-2 text-lg font-bold ${badgeTone(g.rank)} ${placeFrame(g.rank)}`}
                   >
-                    #{g.rank}
+                    {g.rank === 1 ? '👑' : `#${g.rank}`}
                   </span>
                 </div>
                 <div className="mt-3 flex items-end justify-between gap-3">

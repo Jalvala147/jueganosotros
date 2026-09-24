@@ -1,5 +1,6 @@
 import { Link, NavLink, Outlet } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
+import { LeagueAlerts } from './LeagueAlerts'
 import { Avatar } from './ui'
 
 export function Layout() {
@@ -12,17 +13,17 @@ export function Layout() {
             Juega<span className="text-pink">Nosotros</span>
           </Link>
           <div className="flex shrink-0 items-center gap-1.5">
-            <NavLink to="/perfil" aria-label="Perfil">
+            <NavLink to="/perfil" aria-label="Perfil" className="grid h-12 w-12 place-items-center">
               <Avatar
                 name={profile?.displayName ?? '?'}
                 photo={profile?.photoURL}
                 look={profile?.avatar}
-                size={40}
+                size={44}
                 ring="#ff4571"
               />
             </NavLink>
             <button
-              className="rounded-full border-[3px] border-ink bg-white px-3 py-1.5 text-xs font-black text-ink"
+              className="min-h-12 rounded-full border-[3px] border-ink bg-white px-4 text-sm font-black text-ink"
               onClick={() => void signOut()}
             >
               Salir
@@ -30,7 +31,8 @@ export function Layout() {
           </div>
         </div>
       </header>
-      <main className="relative z-10 mx-auto w-full max-w-lg px-4 pb-28 pt-5">
+      <main className="relative z-10 mx-auto w-full max-w-lg px-4 pb-[max(7rem,env(safe-area-inset-bottom))] pt-5">
+        {profile && <LeagueAlerts uid={profile.uid} />}
         <Outlet />
       </main>
     </div>

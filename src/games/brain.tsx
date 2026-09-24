@@ -1,65 +1,148 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { mulberry32, pick, randInt, shuffle } from '../lib/rng'
 import { GameFrame, Overlay, useCountdown, type GameProps } from './kit'
 
-const COLORS = ['#ef4444', '#22c55e', '#3b82f6', '#eab308']
+const PADS = [
+  { rest: '#ff3b30', lit: '#ffb1ab', pressed: '#7a120c', ink: '#1c1430', n: '1' },
+  { rest: '#34c759', lit: '#c8f8d4', pressed: '#0d5c28', ink: '#1c1430', n: '2' },
+  { rest: '#007aff', lit: '#b9dcff', pressed: '#003f86', ink: '#1c1430', n: '3' },
+  { rest: '#ffcc00', lit: '#fff3b0', pressed: '#8a6a00', ink: '#1c1430', n: '4' },
+]
 
 export function Simon({ seed, onFinish }: GameProps) {
   const left = useCountdown()
   const rng = useMemo(() => mulberry32(seed), [seed])
-  const [seq, setSeq] = useState<number[]>([])
   const [lit, setLit] = useState<number | null>(null)
-  const [input, setInput] = useState(false)
-  const [step, setStep] = useState(0)
+  const [pressed, setPressed] = useState<number | null>(null)
+  const [phase, setPhase] = useState('Mira el orden')
+  const [score, setScore] = useState(0)
+  const [waiting, setWaiting] = useState(false)
+  const runId = useRef(0)
+  const inputRef = useRef(false)
+  const seqRef = useRef<number[]>([])
+  const stepRef = useRef(0)
+  const pendingRef = useRef<number[] | null>(null)
 
-  function play(next: number[]) {
-    setInput(false)
-    let i = 0
-    const iv = window.setInterval(() => {
-      setLit(next[i] ?? null)
-      window.setTimeout(() => setLit(null), 320)
-      i += 1
-      if (i >= next.length) {
-        window.clearInterval(iv)
-        setInput(true)
-      }
-    }, 520)
+  function wait(ms: number, id: number) {
+    return new Promise<boolean>((resolve) => {
+      window.setTimeout(() => resolve(runId.current === id), ms)
+    })
+  }
+
+  async function playback(sequence: number[]) {
+    const id = ++runId.current
+    inputRef.current = false
+    setPressed(null)
+    setLit(null)
+    const hold = Math.max(340, 620 - sequence.length * 28)
+    const gap = Math.max(180, 320 - sequence.length * 12)
+    if (!(await wait(420, id))) return
+    for (let i = 0; i < sequence.length; i++) {
+      if (runId.current !== id) return
+      setPhase(`Mira ${i + 1} de ${sequence.length}`)
+      setLit(sequence[i] ?? null)
+      if (!(await wait(hold, id))) return
+      setLit(null)
+      if (!(await wait(gap, id))) return
+    }
+    if (runId.current !== id) return
+    setLit(null)
+    stepRef.current = 0
+    inputRef.current = true
+    setPhase(`Tu turno · 0 de ${sequence.length}`)
   }
 
   useEffect(() => {
     if (left > 0) return
     const first = [randInt(rng, 0, 3)]
-    setSeq(first)
-    play(first)
+    seqRef.current = first
+    stepRef.current = 0
+    void playback(first)
+    return () => {
+      runId.current += 1
+    }
   }, [left, rng])
 
   function tap(n: number) {
-    if (!input) return
-    if (n !== seq[step]) {
-      onFinish(seq.length - 1)
+    if (!inputRef.current) return
+    const expect = seqRef.current[stepRef.current]
+    setPressed(n)
+    if (n !== expect) {
+      inputRef.current = false
+      runId.current += 1
+      setPhase('Ese no era')
+      window.setTimeout(() => onFinish(score), 700)
       return
     }
-    if (step + 1 === seq.length) {
-      const next = [...seq, randInt(rng, 0, 3)]
-      setSeq(next)
-      setStep(0)
-      window.setTimeout(() => play(next), 400)
-    } else setStep((s) => s + 1)
+    const nextStep = stepRef.current + 1
+    if (nextStep === seqRef.current.length) {
+      inputRef.current = false
+      const grown = [...seqRef.current, randInt(rng, 0, 3)]
+      seqRef.current = grown
+      stepRef.current = 0
+      setScore(grown.length - 1)
+      pendingRef.current = grown
+      setWaiting(true)
+      setPhase('Toca siguiente cuando quieras')
+      return
+    }
+    stepRef.current = nextStep
+    setPhase(`Tu turno · ${nextStep} de ${seqRef.current.length}`)
+    window.setTimeout(() => setPressed((current) => (current === n ? null : current)), 220)
+  }
+
+  function continueSequence() {
+    const grown = pendingRef.current
+    if (!grown) return
+    pendingRef.current = null
+    setWaiting(false)
+    setPressed(null)
+    void playback(grown)
   }
 
   if (left > 0) return <Overlay text={String(left)} />
   return (
-    <GameFrame score={Math.max(0, seq.length - 1)} label="repite">
+    <GameFrame score={score} label={phase.startsWith('Tu turno') ? 'tu turno' : 'mira'}>
+      <p className="px-4 pt-4 text-center text-sm font-extrabold leading-relaxed break-words text-ink/70">{phase}</p>
       <div className="grid grid-cols-2 gap-3 p-4">
-        {COLORS.map((c, i) => (
-          <button
-            key={c}
-            onClick={() => tap(i)}
-            className="h-28 rounded-[1.4rem] border-[3px] border-ink shadow-[0_4px_0_#1c1430]"
-            style={{ background: c, filter: lit === i ? 'brightness(1.25)' : 'brightness(0.82)' }}
-          />
-        ))}
+        {PADS.map((pad, i) => {
+          const showing = lit === i
+          const held = pressed === i
+          return (
+            <button
+              key={pad.n}
+              type="button"
+              onPointerDown={(e) => {
+                e.preventDefault()
+                tap(i)
+              }}
+              className="grid h-28 place-items-center rounded-[1.4rem] border-[3px] border-ink"
+              style={{
+                background: held ? pad.pressed : showing ? pad.lit : pad.rest,
+                color: held ? '#fff' : pad.ink,
+                boxShadow: held || showing ? '0 0 0 5px #fff, 0 4px 0 #1c1430' : '0 4px 0 #1c1430',
+                transform: held ? 'scale(0.96)' : showing ? 'scale(1.04)' : 'scale(1)',
+              }}
+            >
+              <span className="display text-4xl font-bold leading-none">{pad.n}</span>
+            </button>
+          )
+        })}
       </div>
+      {waiting ? (
+        <div className="px-4 pb-4">
+          <button
+            type="button"
+            onPointerDown={(e) => {
+              e.preventDefault()
+              continueSequence()
+            }}
+            className="display w-full rounded-2xl border-[3px] border-ink bg-yellow px-4 py-3 text-lg font-bold text-ink"
+          >
+            Siguiente
+          </button>
+        </div>
+      ) : null}
     </GameFrame>
   )
 }
@@ -70,6 +153,7 @@ export function Puzzle2048({ seed, onFinish }: GameProps) {
   const [board, setBoard] = useState<number[]>(Array(16).fill(0))
   const [score, setScore] = useState(0)
   const [time, setTime] = useState(60)
+  const swipeStart = useRef<{ x: number; y: number } | null>(null)
 
   function spawn(cells: number[]) {
     const empties = cells.map((v, i) => (v === 0 ? i : -1)).filter((i) => i >= 0)
@@ -141,20 +225,31 @@ export function Puzzle2048({ seed, onFinish }: GameProps) {
   return (
     <GameFrame score={score} label={`${time}s`}>
       <div
-        className="grid grid-cols-4 gap-2 p-3"
+        className="grid touch-none grid-cols-4 gap-2 p-3"
+        onPointerDown={(e) => {
+          e.preventDefault()
+          e.currentTarget.setPointerCapture(e.pointerId)
+          swipeStart.current = { x: e.clientX, y: e.clientY }
+        }}
         onPointerUp={(e) => {
-          const r = e.currentTarget.getBoundingClientRect()
-          const x = (e.clientX - r.left) / r.width - 0.5
-          const y = (e.clientY - r.top) / r.height - 0.5
-          if (Math.abs(x) > Math.abs(y)) slide(x > 0 ? 'r' : 'l')
-          else slide(y > 0 ? 'd' : 'u')
+          const start = swipeStart.current
+          if (!start) return
+          const dx = e.clientX - start.x
+          const dy = e.clientY - start.y
+          swipeStart.current = null
+          if (Math.hypot(dx, dy) < 24) return
+          if (Math.abs(dx) > Math.abs(dy)) slide(dx > 0 ? 'r' : 'l')
+          else slide(dy > 0 ? 'd' : 'u')
         }}
       >
         {board.map((n, i) => (
           <div
             key={i}
-            className="display flex aspect-square items-center justify-center rounded-2xl border-[3px] border-ink text-lg font-bold text-ink"
-            style={{ background: n ? `hsl(${28 + Math.log2(n) * 16} 90% 62%)` : '#efe6ff' }}
+            className="display flex aspect-square items-center justify-center overflow-hidden rounded-2xl border-[3px] border-ink px-0.5 font-bold leading-none text-ink"
+            style={{
+              background: n ? `hsl(${28 + Math.log2(n) * 16} 90% 62%)` : '#efe6ff',
+              fontSize: n >= 1000 ? '0.7rem' : n >= 128 ? '0.95rem' : '1.15rem',
+            }}
           >
             {n || ''}
           </div>
@@ -205,14 +300,18 @@ export function Memory({ seed, onFinish }: GameProps) {
   if (left > 0) return <Overlay text={String(left)} />
   return (
     <GameFrame score={`${moves} mov`} label="parejas">
-      <div className="grid grid-cols-4 gap-2 p-3">
+      <div className="grid touch-none grid-cols-4 gap-2 p-3">
         {deck.map((icon, i) => {
           const show = open.includes(i) || done.includes(i)
           return (
             <button
               key={i}
-              onClick={() => tap(i)}
-              className={`flex aspect-square items-center justify-center rounded-2xl border-[3px] border-ink text-2xl shadow-[0_3px_0_#1c1430] ${
+              type="button"
+              onPointerDown={(e) => {
+                e.preventDefault()
+                tap(i)
+              }}
+              className={`flex min-h-16 aspect-square items-center justify-center rounded-2xl border-[3px] border-ink text-2xl shadow-[0_3px_0_#1c1430] ${
                 show ? 'bg-white' : 'bg-purple text-white'
               }`}
             >
@@ -225,207 +324,100 @@ export function Memory({ seed, onFinish }: GameProps) {
   )
 }
 
-export function QuickMaths({ seed, onFinish }: GameProps) {
+const HANOI_COLORS = ['#28dad4', '#ffd145', '#ff4571', '#8260f6']
+
+export function Hanoi({ seed, onFinish }: GameProps) {
+  void seed
   const left = useCountdown()
-  const rng = useMemo(() => mulberry32(seed), [seed])
-  const [q, setQ] = useState({ text: '', answer: 0 })
-  const [value, setValue] = useState('')
-  const [score, setScore] = useState(0)
-  const [time, setTime] = useState(30)
-
-  function nextQ() {
-    const a = randInt(rng, 2, 12)
-    const b = randInt(rng, 2, 12)
-    const op = pick(rng, ['+', '-', '×'] as const)
-    const answer = op === '+' ? a + b : op === '-' ? a - b : a * b
-    setQ({ text: `${a} ${op} ${b}`, answer })
-    setValue('')
-  }
-
-  useEffect(() => {
-    if (left > 0) return
-    nextQ()
-    const iv = window.setInterval(() => {
-      setTime((t) => {
-        if (t <= 1) {
-          window.clearInterval(iv)
-          return 0
-        }
-        return t - 1
-      })
-    }, 1000)
-    return () => window.clearInterval(iv)
-  }, [left])
-
-  useEffect(() => {
-    if (left > 0) return
-    if (time === 0) onFinish(score)
-  }, [left, onFinish, score, time])
-
-  if (left > 0) return <Overlay text={String(left)} />
-  return (
-    <GameFrame score={score} label={`${time}s`}>
-      <div className="space-y-3 p-4">
-        <p className="display text-center text-5xl font-bold text-ink">{q.text}</p>
-        <input
-          className="input text-center text-2xl"
-          inputMode="numeric"
-          value={value}
-          onChange={(e) => setValue(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              if (Number(value) === q.answer) {
-                setScore((s) => s + 1)
-                nextQ()
-              } else setValue('')
-            }
-          }}
-        />
-        <button
-          className="btn btn-pink w-full"
-          onClick={() => {
-            if (Number(value) === q.answer) {
-              setScore((s) => s + 1)
-              nextQ()
-            } else setValue('')
-          }}
-        >
-          Enviar
-        </button>
-      </div>
-    </GameFrame>
-  )
-}
-
-const WORDS = [
-  'juego', 'amigo', 'ronda', 'punto', 'grupo', 'ficha', 'nieve', 'playa', 'verde', 'dulce',
-  'carta', 'silla', 'nubes', 'fuego', 'campo', 'linea', 'tecla', 'mundo', 'piano', 'cobra',
-  'farol', 'fruta', 'huevo', 'lucha', 'mango', 'norte', 'ocaso', 'perro', 'queso', 'radio',
-]
-
-export function Wordle({ seed, onFinish }: GameProps) {
-  const left = useCountdown()
-  const word = useMemo(() => WORDS[seed % WORDS.length]!, [seed])
-  const [guess, setGuess] = useState('')
-  const [rows, setRows] = useState<string[]>([])
-
-  function submit() {
-    if (guess.length !== 5) return
-    const next = [...rows, guess.toLowerCase()]
-    setRows(next)
-    setGuess('')
-    if (guess.toLowerCase() === word) onFinish((7 - next.length) * 100)
-    else if (next.length >= 6) onFinish(0)
-  }
-
-  if (left > 0) return <Overlay text={String(left)} />
-  return (
-    <GameFrame score={`${rows.length}/6`} label="5 letras">
-      <div className="space-y-3 p-4">
-        <div className="space-y-1">
-          {rows.map((r, ri) => (
-            <div key={ri} className="grid grid-cols-5 gap-1">
-              {r.split('').map((ch, i) => {
-                const color =
-                  word[i] === ch
-                    ? 'bg-yellow text-ink'
-                    : word.includes(ch)
-                      ? 'bg-pink text-white'
-                      : 'bg-mute text-white'
-                return (
-                  <div key={i} className={`rounded-lg border-[3px] border-ink py-2 text-center font-extrabold uppercase ${color}`}>
-                    {ch}
-                  </div>
-                )
-              })}
-            </div>
-          ))}
-        </div>
-        <input
-          className="input text-center uppercase tracking-[0.28em]"
-          maxLength={5}
-          value={guess}
-          onChange={(e) => setGuess(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') submit()
-          }}
-        />
-        <button className="btn btn-pink w-full" onClick={submit}>
-          Probar
-        </button>
-      </div>
-    </GameFrame>
-  )
-}
-
-export function WaterSort({ seed, onFinish }: GameProps) {
-  const left = useCountdown()
-  const [tubes, setTubes] = useState<string[][]>([])
-  const [sel, setSel] = useState<number | null>(null)
+  const [pegs, setPegs] = useState<number[][]>([
+    [4, 3, 2, 1],
+    [],
+    [],
+  ])
+  const [from, setFrom] = useState<number | null>(null)
   const [moves, setMoves] = useState(0)
+  const [note, setNote] = useState('Toca una torre para tomar el disco de arriba.')
+  const done = useRef(false)
 
-  useEffect(() => {
-    if (left > 0) return
-    const rng = mulberry32(seed)
-    const colors = ['#ef4444', '#22c55e', '#3b82f6', '#eab308']
-    let tubes: string[][] = colors.map((c) => [c, c, c, c])
-    tubes.push([], [])
-    for (let n = 0; n < 28; n++) {
-      const from = randInt(rng, 0, tubes.length - 1)
-      const to = randInt(rng, 0, tubes.length - 1)
-      if (from === to || tubes[from]!.length === 0 || tubes[to]!.length >= 4) continue
-      const color = tubes[from]![tubes[from]!.length - 1]
-      const top = tubes[to]![tubes[to]!.length - 1]
-      if (top && top !== color) continue
-      tubes = tubes.map((t) => [...t])
-      tubes[to]!.push(tubes[from]!.pop()!)
-    }
-    setTubes(tubes)
-  }, [left, seed])
-
-  function tap(i: number) {
-    if (sel == null) {
-      if (tubes[i]?.length) setSel(i)
+  function tap(index: number) {
+    if (left > 0 || done.current) return
+    const stack = pegs[index] ?? []
+    if (from == null) {
+      if (stack.length === 0) {
+        setNote('Esa torre está vacía.')
+        return
+      }
+      setFrom(index)
+      setNote('Ahora toca dónde lo quieres dejar.')
       return
     }
-    if (sel === i) {
-      setSel(null)
+    if (from === index) {
+      setFrom(null)
+      setNote('Toca una torre para tomar el disco de arriba.')
       return
     }
-    const from = [...(tubes[sel] ?? [])]
-    const to = [...(tubes[i] ?? [])]
-    const color = from[from.length - 1]
-    if (!color || to.length >= 4 || (to.length && to[to.length - 1] !== color)) {
-      setSel(null)
+    const src = pegs[from] ?? []
+    const disk = src[src.length - 1]
+    const top = stack[stack.length - 1]
+    if (disk == null || (top != null && disk > top)) {
+      setFrom(null)
+      setNote('No cabe. Solo un disco más chico puede ir encima.')
       return
     }
-    while (from[from.length - 1] === color && to.length < 4) to.push(from.pop()!)
-    const next = tubes.map((t, idx) => (idx === sel ? from : idx === i ? to : t))
-    setTubes(next)
-    setMoves((m) => m + 1)
-    setSel(null)
-    const won = next.every((t) => t.length === 0 || (t.length === 4 && t.every((c) => c === t[0])))
-    if (won) onFinish(moves + 1)
+    const next = pegs.map((peg) => [...peg])
+    next[from]!.pop()
+    next[index]!.push(disk)
+    const count = moves + 1
+    setPegs(next)
+    setMoves(count)
+    setFrom(null)
+    if (next[2]!.length === 4) {
+      done.current = true
+      setNote('Listo. Todos quedaron en la torre de la derecha.')
+      onFinish(count)
+      return
+    }
+    setNote('Toca una torre para tomar el disco de arriba.')
   }
 
   if (left > 0) return <Overlay text={String(left)} />
   return (
     <GameFrame score={moves} label="menos movimientos">
-      <div className="grid grid-cols-3 gap-3 p-4">
-        {tubes.map((t, i) => (
+      <div className="grid grid-cols-3 gap-2 px-3 pt-3">
+        {pegs.map((stack, index) => (
           <button
-            key={i}
-            onClick={() => tap(i)}
-            className={`flex h-40 flex-col-reverse overflow-hidden rounded-b-[1.4rem] rounded-t-lg border-[3px] bg-white ${
-              sel === i ? 'border-pink' : 'border-ink'
+            key={index}
+            type="button"
+            className={`relative flex h-80 touch-none flex-col-reverse justify-start rounded-2xl border-[3px] px-1 pb-4 ${
+              from === index ? 'border-pink bg-yellow/40' : 'border-ink bg-white'
             }`}
+            onPointerDown={(e) => {
+              e.preventDefault()
+              tap(index)
+            }}
           >
-            {t.map((c, k) => (
-              <div key={k} className="h-8" style={{ background: c }} />
+            <span className="absolute left-1/2 top-3 h-[78%] w-2 -translate-x-1/2 rounded-full bg-ink" />
+            <span className="absolute bottom-2 left-2 right-2 h-3 rounded-full bg-ink" />
+            {stack.map((disk, level) => (
+              <span
+                key={`${disk}-${level}`}
+                className="relative z-10 mx-auto mb-1 h-9 rounded-full border-[3px] border-ink"
+                style={{
+                  width: `${40 + disk * 14}%`,
+                  background: HANOI_COLORS[disk - 1],
+                  transform: from === index && level === stack.length - 1 ? 'translateY(-18px)' : undefined,
+                }}
+              />
             ))}
           </button>
         ))}
       </div>
+      <div className="grid grid-cols-3 px-3 pb-1 text-center text-[11px] font-black uppercase tracking-wide text-ink/50">
+        <span>Inicio</span>
+        <span>Centro</span>
+        <span>Meta</span>
+      </div>
+      <p className="px-4 py-3 text-center text-sm font-extrabold leading-relaxed break-words text-ink/70">{note}</p>
     </GameFrame>
   )
 }

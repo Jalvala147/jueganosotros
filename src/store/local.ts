@@ -1,10 +1,9 @@
 import { makeGroupCode, normalizeCode } from '../lib/codes'
 import { makeId } from '../lib/ids'
-import { nextGameId } from '../games/catalog'
-import { GAME_MAP } from '../games/catalog'
+import { findGame, nextGameId } from '../games/catalog'
 import { buildCareer } from '../lib/career'
-import { closeRoundScoring, compareMembers, emptyMember, resetSeasonMember, shouldAutoClose } from '../lib/scoring'
-import type { AvatarLook, Group, GroupSnapshot, Member, PlayRecord, Round, UserProfile } from '../types'
+import { closeRoundScoring, compareMembers, emptyMember, majorityReached, resetSeasonMember } from '../lib/scoring'
+import type { AvatarLook, ChatMessage, Group, GroupSnapshot, Member, PlayRecord, Round, UserProfile } from '../types'
 import { defaultSettings, firstRound, type AuthAPI, type MyGroup, type SessionUser, type StoreAPI } from './types'
 
 const DATA_KEY = 'jn.v1.data'
@@ -17,18 +16,22 @@ type DB = {
   rounds: Record<string, Record<string, Round>>
   plays: Record<string, Record<string, Record<string, PlayRecord>>>
   codes: Record<string, string>
+  messages: Record<string, ChatMessage[]>
 }
 
 const listeners = new Set<() => void>()
 
 function emptyDb(): DB {
-  return { users: {}, groups: {}, members: {}, rounds: {}, plays: {}, codes: {} }
+  return { users: {}, groups: {}, members: {}, rounds: {}, plays: {}, codes: {}, messages: {} }
 }
 
 function load(): DB {
   try {
     const raw = localStorage.getItem(DATA_KEY)
-    return raw ? (JSON.parse(raw) as DB) : emptyDb()
+    if (!raw) return emptyDb()
+    const db = JSON.parse(raw) as DB
+    db.messages ??= {}
+    return db
   } catch {
     return emptyDb()
   }
@@ -181,7 +184,7 @@ export const localStore: StoreAPI = {
     return onChange(emit)
   },
 
-  async createGroup(uid, name, displayName, photoURL, avatar: AvatarLook | null = null) {
+  async createGroup(uid, name, displayName, photoURL, avatar: AvatarLook | null = null, changeMinutes?: number) {
     const id = makeId('g')
     const code = makeGroupCode()
     const seed = (crypto.getRandomValues(new Uint32Array(1))[0] ?? Date.now()) >>> 0
@@ -197,7 +200,7 @@ export const localStore: StoreAPI = {
         seasonNumber: 1,
         currentRoundId: `r_${seed.toString(16)}`,
         memberIds: [uid],
-        settings: defaultSettings(),
+        settings: { ...defaultSettings(), changeMinutes },
       }
       const round = firstRound(id, gameId, seed, group.settings.timeoutHours)
       db.groups[id] = group
@@ -272,9 +275,34 @@ export const localStore: StoreAPI = {
     return onChange(emit)
   },
 
+  watchMessages(groupId, cb) {
+    const emit = () => {
+      const db = load()
+      cb([...(db.messages[groupId] ?? [])].sort((a, b) => a.createdAt - b.createdAt).slice(-80))
+    }
+    emit()
+    return onChange(emit)
+  },
+
+  async sendMessage(groupId, uid, name, text) {
+    const clean = text.trim().slice(0, 240)
+    if (!clean) throw new Error('Escribe un mensaje')
+    mutate((db) => {
+      if (!db.groups[groupId]) throw new Error('No encontré la liga')
+      db.messages[groupId] ??= []
+      db.messages[groupId].push({
+        id: makeId(),
+        uid,
+        name: name.trim().slice(0, 24) || 'Jugador',
+        text: clean,
+        createdAt: Date.now(),
+      })
+      db.messages[groupId] = db.messages[groupId].slice(-80)
+    })
+  },
+
   async submitPlay(groupId, roundId, uid, kind, score) {
     let record: PlayRecord | null = null
-    let shouldClose = false
     mutate((db) => {
       const group = db.groups[groupId]
       const round = db.rounds[groupId]?.[roundId]
@@ -300,8 +328,8 @@ export const localStore: StoreAPI = {
           throw new Error('No te quedan intentos')
         }
         prev.official.push(score)
-        const meta = GAME_MAP[round.gameId]
-        const best = meta.direction === 'lower'
+        const meta = findGame(round.gameId)
+        const best = meta?.direction === 'lower'
           ? Math.min(...prev.official)
           : Math.max(...prev.official)
         prev.best = best
@@ -313,13 +341,27 @@ export const localStore: StoreAPI = {
       prev.updatedAt = Date.now()
       db.plays[groupId]![roundId]![uid] = prev
       record = prev
-
-      const memberIds = Object.keys(db.members[groupId] ?? {})
-      const plays = db.plays[groupId]![roundId]!
-      shouldClose = shouldAutoClose(memberIds.length, memberIds.filter((id) => plays[id]?.finished).length)
     })
-    if (shouldClose) await localStore.closeAndAdvance(groupId)
     return record!
+  },
+
+  async voteAdvance(groupId, uid) {
+    let go = false
+    mutate((db) => {
+      const group = db.groups[groupId]
+      const round = group ? db.rounds[groupId]?.[group.currentRoundId] : undefined
+      if (!group || !round || round.status !== 'active') throw new Error('La ronda ya no está activa')
+      const memberIds = Object.keys(db.members[groupId] ?? {})
+      const plays = db.plays[groupId]?.[round.id] ?? {}
+      if (!memberIds.length || !memberIds.every((id) => plays[id]?.finished)) {
+        throw new Error('Faltan jugadores por terminar sus dos turnos')
+      }
+      const votes = new Set(round.advanceVotes ?? [])
+      votes.add(uid)
+      round.advanceVotes = [...votes]
+      go = majorityReached(votes.size, memberIds.length)
+    })
+    if (go) await localStore.closeAndAdvance(groupId)
   },
 
   async closeAndAdvance(groupId) {
@@ -333,7 +375,7 @@ export const localStore: StoreAPI = {
       const { results, members: next } = closeRoundScoring({
         members,
         plays,
-        lowerIsBetter: GAME_MAP[round.gameId].direction === 'lower',
+        lowerIsBetter: findGame(round.gameId)?.direction === 'lower',
         gameId: round.gameId,
       })
       round.status = 'closed'
@@ -354,7 +396,7 @@ export const localStore: StoreAPI = {
   async newSeason(groupId, uid) {
     mutate((db) => {
       const group = db.groups[groupId]
-      if (!group || group.createdBy !== uid) throw new Error('Solo el creador puede resetear la temporada')
+      if (!group || group.createdBy !== uid) throw new Error('Solo quien creó el grupo puede reiniciar la temporada')
       group.seasonNumber += 1
       const members = db.members[groupId] ?? {}
       for (const key of Object.keys(members)) {

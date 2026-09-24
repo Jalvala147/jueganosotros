@@ -94,7 +94,7 @@ export function Profile() {
               <span className="w-16 shrink-0 text-xs font-black uppercase tracking-wide text-ink/55">{field.label}</span>
               <button
                 type="button"
-                className="grid h-10 w-10 shrink-0 place-items-center rounded-full border-[3px] border-ink bg-white text-lg font-black"
+                className="grid h-12 w-12 shrink-0 place-items-center rounded-full border-[3px] border-ink bg-white text-xl font-black"
                 aria-label={`${field.label} anterior`}
                 onClick={() => {
                   setLookTouched(true)
@@ -115,7 +115,7 @@ export function Profile() {
               </div>
               <button
                 type="button"
-                className="grid h-10 w-10 shrink-0 place-items-center rounded-full border-[3px] border-ink bg-white text-lg font-black"
+                className="grid h-12 w-12 shrink-0 place-items-center rounded-full border-[3px] border-ink bg-white text-xl font-black"
                 aria-label={`${field.label} siguiente`}
                 onClick={() => {
                   setLookTouched(true)

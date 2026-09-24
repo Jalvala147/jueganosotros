@@ -2,7 +2,7 @@
 
 PWA de minijuegos en grupo, pensada para iPhone y Android. Misma idea que playus, con una diferencia: **la siguiente ronda empieza cuando todos han jugado**, no cada 24 horas.
 
-- 20 minijuegos con la **misma semilla** para todo el grupo
+- 18 minijuegos con la **misma semilla** para todo el grupo
 - Grupos por **código** (puedes estar en varios)
 - Login con **Google** y **Sign in with Apple** (Firebase Auth)
 - Temporada estilo F1, **Elo**, forma de las últimas 5 y **rachas**

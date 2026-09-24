@@ -1,11 +1,12 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { useAuth } from '../auth/AuthProvider'
 import { LeaderCharts } from '../components/Charts'
 import { Streaks } from '../components/Streaks'
-import { Avatar, CodeChip, GameArt, GameGlyph, rankTone } from '../components/ui'
-import { GAME_MAP } from '../games/catalog'
-import { compareMembers, formPoints } from '../lib/scoring'
+import { GroupChat } from '../components/GroupChat'
+import { Avatar, CodeChip, GameArt, GameGlyph, placeFrame, rankTone } from '../components/ui'
+import { findGame, GAME_MAP } from '../games/catalog'
+import { attemptsToBest, changeIsDue, compareMembers, compareScores, eloTier } from '../lib/scoring'
 import { getStore } from '../store'
 import type { GroupSnapshot, Member } from '../types'
 
@@ -27,14 +28,24 @@ export function GroupHub() {
   const [snap, setSnap] = useState<GroupSnapshot | null>(null)
   const [tab, setTab] = useState<Tab>('ronda')
   const [error, setError] = useState<string | null>(null)
+  const [voting, setVoting] = useState(false)
+  const clockRound = useRef('')
 
   useEffect(() => {
     return getStore().watchGroup(groupId, setSnap)
   }, [groupId])
 
+  useEffect(() => {
+    if (!snap || snap.round.status !== 'active') return
+    if (clockRound.current === snap.round.id) return
+    if (!changeIsDue(snap.round.startedAt, snap.group.settings.changeMinutes)) return
+    clockRound.current = snap.round.id
+    void getStore().closeAndAdvance(groupId)
+  }, [groupId, snap])
+
   const me = snap?.members.find((m) => m.uid === session?.uid)
   const table = useMemo(() => [...(snap?.members ?? [])].sort(compareMembers), [snap])
-  const game = snap ? GAME_MAP[snap.round.gameId] : null
+  const game = snap ? findGame(snap.round.gameId) : null
   const play = session ? snap?.plays[session.uid] : undefined
   const finishedCount = Object.values(snap?.plays ?? {}).filter((p) => p.finished).length
   const hideScores = Boolean(me && !play?.finished)
@@ -45,6 +56,11 @@ export function GroupHub() {
 
   const timedOut = Date.now() > snap.round.timeoutAt
   const myTurnDone = Boolean(play?.finished)
+  const votes = snap.round.advanceVotes ?? []
+  const allPlayed = snap.members.length > 0 && finishedCount >= snap.members.length
+  const voted = votes.includes(session.uid)
+  const needed = Math.floor(snap.members.length / 2) + 1
+  const changeLabel = formatClock(snap.group.settings.changeMinutes)
 
   async function closeRound() {
     setError(null)
@@ -75,14 +91,15 @@ export function GroupHub() {
         </div>
         {session.uid === snap.group.createdBy && (
           <button
-            className="shrink-0 rounded-full border-[3px] border-ink bg-white px-3 py-1 text-xs font-black text-ink"
+            className="min-h-12 shrink-0 rounded-full border-[3px] border-ink bg-white px-4 text-sm font-black text-ink"
             onClick={() => void resetSeason()}
           >
-            Reset
+            Reiniciar
           </button>
         )}
       </div>
 
+      {game ? (
       <section className="card overflow-hidden">
         <GameArt game={game} className="h-28" />
         <div className="space-y-3 p-4">
@@ -102,8 +119,11 @@ export function GroupHub() {
             <span>
               {finishedCount}/{snap.members.length} listos
             </span>
-            <span>{game.direction === 'higher' ? '↑ más alto' : '↓ menos gana'}</span>
+            <span>{game.direction === 'higher' ? '↑ gana el más alto' : '↓ gana el más bajo'}</span>
           </div>
+          {changeLabel && (
+            <p className="text-sm font-black leading-relaxed text-ink/70">Cambia solo a las {changeLabel}.</p>
+          )}
           <FaceStack members={snap.members} plays={snap.plays} />
           {!myTurnDone ? (
             <Link to={`/grupo/${groupId}/jugar`} className="btn btn-pink w-full">
@@ -116,13 +136,21 @@ export function GroupHub() {
           )}
         </div>
       </section>
+      ) : (
+        <section className="card space-y-2 p-5">
+          <p className="text-lg font-extrabold leading-snug">Este juego ya no está.</p>
+          <p className="font-bold leading-relaxed text-ink/70">Cierren la ronda para seguir con la siguiente.</p>
+        </section>
+      )}
+
+      <GroupChat groupId={groupId} uid={session.uid} name={me?.displayName ?? 'Jugador'} />
 
       <div className="flex flex-wrap gap-2">
         {TABS.map((t) => (
           <button
             key={t.id}
             onClick={() => setTab(t.id)}
-            className={`display shrink-0 rounded-full border-[3px] border-ink px-4 py-1.5 text-sm font-bold ${
+            className={`display min-h-12 shrink-0 rounded-full border-[3px] border-ink px-4 text-sm font-bold ${
               tab === t.id ? 'bg-pink text-white shadow-[0_4px_0_#1c1430]' : 'bg-mute text-white'
             }`}
           >
@@ -139,7 +167,30 @@ export function GroupHub() {
       {tab === 'duelos' && me && <H2H me={me} members={table} />}
       {tab === 'juegos' && <Kings members={table} />}
 
-      {(timedOut || session.uid === snap.group.createdBy) && (
+      {allPlayed && snap.round.status === 'active' && (
+        <section className="card space-y-3 p-4">
+          <p className="text-lg font-extrabold leading-snug">Todos terminaron sus dos turnos.</p>
+          <p className="text-sm font-bold leading-relaxed text-ink/70">
+            {votes.length} de {needed} aceptaron avanzar. El juego cambia cuando la mayoría diga que sí.
+          </p>
+          <button
+            className="btn btn-pink w-full"
+            disabled={voted || voting}
+            onClick={() => {
+              setVoting(true)
+              setError(null)
+              void getStore()
+                .voteAdvance(groupId, session.uid)
+                .catch((e: unknown) => setError(e instanceof Error ? e.message : 'No se pudo avanzar'))
+                .finally(() => setVoting(false))
+            }}
+          >
+            {voted ? 'Ya aceptaste' : 'Acepto avanzar'}
+          </button>
+        </section>
+      )}
+
+      {(timedOut || session.uid === snap.group.createdBy) && !allPlayed && (
         <button className="btn btn-ghost w-full" onClick={() => void closeRound()}>
           {timedOut ? 'Cerrar ronda (tiempo agotado)' : 'Cerrar y saltar ausentes'}
         </button>
@@ -151,15 +202,15 @@ export function GroupHub() {
           <h3 className="display mb-2 text-2xl font-bold text-ink">Últimas rondas</h3>
           <div className="space-y-2">
             {snap.history.map((r) => {
-              const meta = GAME_MAP[r.gameId]
+              const meta = findGame(r.gameId)
               const winner = r.results?.[0]
               const name = table.find((m) => m.uid === winner?.uid)?.displayName
               return (
                 <div key={r.id} className="score-row flex items-center justify-between gap-2 bg-mute px-3 py-2 text-white">
                   <span className="flex min-w-0 items-center gap-2 font-extrabold">
-                    <GameGlyph game={meta} size={42} />
+                    {meta && <GameGlyph game={meta} size={42} />}
                     <span className="truncate">
-                      #{r.index} {meta.name}
+                      #{r.index} {meta?.name ?? 'Juego retirado'}
                     </span>
                   </span>
                   <span className="display max-w-[42%] shrink-0 truncate text-right text-sm font-bold text-yellow">
@@ -175,65 +226,38 @@ export function GroupHub() {
   )
 }
 
-function Podium({ members, me }: { members: Member[]; me: string }) {
-  const top = members.slice(0, 3)
-  if (top.length < 2) return null
-  const slots =
-    top.length > 2
-      ? [
-          { m: top[1]!, place: 2, h: 'min-h-32', tone: 'bg-yellow text-ink' },
-          { m: top[0]!, place: 1, h: 'min-h-40', tone: 'bg-pink text-white' },
-          { m: top[2]!, place: 3, h: 'min-h-28', tone: 'bg-purple text-white' },
-        ]
-      : [
-          { m: top[1]!, place: 2, h: 'min-h-32', tone: 'bg-yellow text-ink' },
-          { m: top[0]!, place: 1, h: 'min-h-40', tone: 'bg-pink text-white' },
-        ]
-  return (
-    <div className="flex items-end gap-2">
-      {slots.map(({ m, place, h, tone }) => (
-        <div
-          key={m.uid}
-          className={`score-row flex min-w-0 flex-1 flex-col items-center justify-end px-1.5 pb-3 pt-3 ${h} ${tone} ${
-            m.uid === me ? meMark : ''
-          }`}
-        >
-          <span className="display text-xs font-bold opacity-80">#{place}</span>
-          <Avatar name={m.displayName} photo={m.photoURL} look={m.avatar} size={36} ring="transparent" />
-          <p className="mt-1 w-full truncate text-center text-xs font-black">{m.displayName}</p>
-          <p className="display text-2xl font-bold leading-none">{m.seasonPoints}</p>
-        </div>
-      ))}
-    </div>
-  )
+function formatClock(minutes?: number) {
+  if (minutes == null) return null
+  const hour = Math.floor(minutes / 60)
+  const minute = minutes % 60
+  return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`
 }
 
 function SeasonBoard({ members, me }: { members: Member[]; me: string }) {
   return (
-    <div className="space-y-2">
-      <Podium members={members} me={me} />
+    <div className="space-y-3">
+      <p className="display text-3xl font-bold leading-none text-ink">Temporada</p>
       {members.map((m, i) => (
         <div
           key={m.uid}
-          className={`score-row flex items-center gap-2 px-3 py-3 ${rankTone(i)} ${m.uid === me ? meMark : ''}`}
+          className={`score-row flex items-center gap-3 px-3 py-3 ${rankTone(i)} ${placeFrame(i + 1)} ${m.uid === me ? meMark : ''}`}
         >
-          <span className="display w-7 shrink-0 text-center text-xl font-bold">{i + 1}</span>
-          <Avatar name={m.displayName} photo={m.photoURL} look={m.avatar} size={40} ring="transparent" />
+          <PlaceMark place={i + 1} />
+          <Avatar name={m.displayName} photo={m.photoURL} look={m.avatar} size={48} ring="transparent" />
           <div className="min-w-0 flex-1">
-            <p className="truncate font-black">
+            <p className="truncate text-xl font-black leading-tight">
+              {i === 0 ? '👑 ' : ''}
               {m.displayName}
-              {m.uid === me && (
-                <span className="ml-2 rounded-full bg-white px-2 py-0.5 text-[10px] font-black uppercase text-ink">
-                  tú
-                </span>
-              )}
+            </p>
+            <p className="truncate text-sm font-extrabold leading-snug opacity-80">
+              {m.wins} victorias · {eloTier(m.elo)} {m.elo}
             </p>
             <Streaks member={m} compact />
-            <p className="truncate text-[11px] font-extrabold opacity-75">
-              {m.wins}W · {m.elo} elo · {formPoints(m.lastFivePoints)} forma
-            </p>
           </div>
-          <p className="display w-12 shrink-0 text-right text-2xl font-bold leading-none">{m.seasonPoints}</p>
+          <div className="shrink-0 text-right">
+            <p className="display text-4xl font-bold leading-none">{m.seasonPoints}</p>
+            <p className="text-xs font-black uppercase opacity-70">pts</p>
+          </div>
         </div>
       ))}
     </div>
@@ -251,51 +275,74 @@ function RoundTable({
   hideScores: boolean
   me: string
 }) {
+  const lower = findGame(snap.round.gameId)?.direction === 'lower'
   const rows = [...members].sort((a, b) => {
     const pa = snap.plays[a.uid]
     const pb = snap.plays[b.uid]
-    if (!!pb?.finished !== !!pa?.finished) return pa?.finished ? -1 : 1
-    if (pa?.best != null && pb?.best != null) {
-      return GAME_MAP[snap.round.gameId].direction === 'lower' ? pa.best - pb.best : pb.best - pa.best
-    }
-    return 0
+    const aDone = Boolean(pa?.finished && pa.best != null)
+    const bDone = Boolean(pb?.finished && pb.best != null)
+    if (aDone !== bDone) return aDone ? -1 : 1
+    if (!aDone || !bDone || pa?.best == null || pb?.best == null) return 0
+    return compareScores(
+      { uid: a.uid, best: pa.best, attempts: attemptsToBest(pa.official, pa.best), at: pa.updatedAt },
+      { uid: b.uid, best: pb.best, attempts: attemptsToBest(pb.official, pb.best), at: pb.updatedAt },
+      lower,
+    )
   })
   return (
-    <div className="space-y-2">
+    <div className="space-y-3">
+      <p className="display text-3xl font-bold leading-none text-ink">Esta ronda</p>
       {rows.map((m, i) => {
         const play = snap.plays[m.uid]
-        const score =
-          play?.finished && play.best != null
-            ? hideScores && m.uid !== me
-              ? '•••'
-              : String(play.best)
-            : play?.official.length
-              ? `${play.official.length} tiro(s)`
-              : 'Esperando'
-        const numeric = play?.finished && play.best != null
+        const numeric = Boolean(play?.finished && play.best != null)
+        const hidden = numeric && hideScores && m.uid !== me
+        const tries = play ? attemptsToBest(play.official, play.best) : 0
+        const score = numeric
+          ? hidden
+            ? '•••'
+            : String(play!.best)
+          : play?.official.length
+            ? `Intento ${play.official.length}/2`
+            : 'Esperando'
         return (
           <div
             key={m.uid}
-            className={`score-row flex items-center justify-between gap-2 px-3 py-3 ${rankTone(i)}`}
+            className={`score-row flex items-center gap-3 px-3 py-3 ${rankTone(numeric ? i : 99)} ${
+              numeric ? placeFrame(i + 1) : ''
+            }`}
           >
-            <div className="flex min-w-0 items-center gap-2">
-              <span className="display w-6 shrink-0 text-center text-xl font-bold">{i + 1}</span>
-              <Avatar name={m.displayName} photo={m.photoURL} look={m.avatar} size={38} ring="transparent" />
-              <p className="truncate font-black">{m.displayName}</p>
+            <PlaceMark place={numeric ? i + 1 : i + 1} muted={!numeric} />
+            <Avatar name={m.displayName} photo={m.photoURL} look={m.avatar} size={48} ring="transparent" />
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-xl font-black leading-tight">
+                {numeric && i === 0 ? '👑 ' : ''}
+                {m.displayName}
+              </p>
+              {numeric && !hidden && (
+                <p className="text-sm font-extrabold opacity-80">
+                  Intento {tries}/2
+                </p>
+              )}
             </div>
-            <p
-              className={
-                numeric
-                  ? 'display shrink-0 text-3xl font-bold leading-none'
-                  : 'max-w-[6.5rem] shrink-0 text-right text-[11px] font-black uppercase leading-tight'
-              }
-            >
+            <p className={`display shrink-0 text-right font-bold leading-none ${numeric ? 'text-4xl' : 'max-w-[7rem] text-sm uppercase'}`}>
               {score}
             </p>
           </div>
         )
       })}
     </div>
+  )
+}
+
+function PlaceMark({ place, muted = false }: { place: number; muted?: boolean }) {
+  return (
+    <span
+      className={`display grid h-14 w-14 shrink-0 place-items-center rounded-2xl border-[3px] border-ink text-2xl font-bold ${
+        muted ? 'bg-white/20' : 'bg-white text-ink'
+      }`}
+    >
+      {place === 1 && !muted ? '1' : place}
+    </span>
   )
 }
 

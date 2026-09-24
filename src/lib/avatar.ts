@@ -12,10 +12,10 @@ export const SKINS = ['#F8D3B0', '#E8B48A', '#C68642', '#8D5524', '#5A3820', '#F
 export const HAIR_COLORS = ['#1C1430', '#6B4F3A', '#E23B5A', '#F0C14A', '#5B3CC4', '#1AA8A3', '#F3F0EA']
 export const BGS = ['#FF4571', '#FFD145', '#8260F6', '#28DAD4', '#4C4660', '#FF8A3D']
 
-export const HAIR_LABELS = ['Rapado', 'Corto', 'Melena', 'Pinchos', 'Moño', 'Rizos']
+export const HAIR_LABELS = ['Rapado', 'Corto', 'Largo', 'Picos', 'Moño', 'Rizos']
 export const EYE_LABELS = ['Puntos', 'Alegres', 'Guiño', 'Estrellas']
 export const MOUTH_LABELS = ['Sonrisa', 'Risa', 'Sorpresa', 'Serio']
-export const EXTRA_LABELS = ['Nada', 'Gafas', 'Gorra', 'Lazo', 'Estrella']
+export const EXTRA_LABELS = ['Nada', 'Lentes', 'Gorra', 'Lazo', 'Estrella']
 
 export const AVATAR_PARTS = {
   skin: SKINS.length,
