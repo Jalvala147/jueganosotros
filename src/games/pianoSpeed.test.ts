@@ -4,11 +4,10 @@ import { PIANO_MAX_SPEED, PIANO_START_SPEED, pianoSpeed } from './pianoSpeed'
 describe('velocidad de Teclas', () => {
   it('sube con cada tecla desde la primera y ya va muy rápido mucho antes del 140', () => {
     expect(pianoSpeed(0)).toBe(PIANO_START_SPEED)
-    expect(pianoSpeed(1)).toBeGreaterThan(pianoSpeed(0) * 1.3)
-    expect(pianoSpeed(2)).toBeGreaterThan(pianoSpeed(1) * 1.3)
-    expect(pianoSpeed(10)).toBeGreaterThan(pianoSpeed(0) * 15)
-    expect(pianoSpeed(15)).toBeLessThan(PIANO_MAX_SPEED)
-    expect(pianoSpeed(40)).toBeGreaterThan(pianoSpeed(15))
+    expect(pianoSpeed(1) / pianoSpeed(0)).toBeCloseTo(2.4)
+    expect(pianoSpeed(2) / pianoSpeed(1)).toBeCloseTo(2.4)
+    expect(pianoSpeed(4)).toBeLessThan(PIANO_MAX_SPEED)
+    expect(pianoSpeed(10)).toBe(PIANO_MAX_SPEED)
     expect(pianoSpeed(140)).toBe(PIANO_MAX_SPEED)
   })
 
