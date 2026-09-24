@@ -494,14 +494,6 @@ export function Crossy({ seed, onFinish }: GameProps) {
   return (
     <GameFrame score={score} label="toca para subir">
       <canvas ref={canvas} className="block w-full touch-none" />
-      <div className="grid grid-cols-3 gap-2 p-3">
-        <span />
-        <button type="button" className="btn btn-yellow min-h-14" onPointerDown={(e) => { e.preventDefault(); stepRef.current(0, 1) }}>↑</button>
-        <span />
-        <button type="button" className="btn btn-yellow min-h-14" onPointerDown={(e) => { e.preventDefault(); stepRef.current(-1, 0) }}>←</button>
-        <span />
-        <button type="button" className="btn btn-yellow min-h-14" onPointerDown={(e) => { e.preventDefault(); stepRef.current(1, 0) }}>→</button>
-      </div>
     </GameFrame>
   )
 }
